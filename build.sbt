@@ -80,16 +80,20 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
+val catsRetryVersion = "0.2.7"
+
 lazy val core = project
-  .in(file("core"))
-  .settings(
-    commonSettings,
-    name := "cats-saga-core",
-    coverageEnabled := true,
-    crossScalaVersions := allScala,
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect" % "2.0.0-M4",
-      "org.scalatest" %% "scalatest"  % "3.0.8" % "test",
-      compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+    .in(file("core"))
+    .settings(
+      commonSettings,
+      name := "cats-saga-core",
+      coverageEnabled := true,
+      crossScalaVersions := allScala,
+      libraryDependencies ++= Seq(
+        "org.typelevel"    %% "cats-effect"            % "2.0.0-M4",
+        "org.scalatest"    %% "scalatest"              % "3.0.8"          % Test,
+        "com.github.cb372" %% "cats-retry-core"        % catsRetryVersion % Optional,
+        "com.github.cb372" %% "cats-retry-cats-effect" % catsRetryVersion % Optional,
+        compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+      )
     )
-  )
