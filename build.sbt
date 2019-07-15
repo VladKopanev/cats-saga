@@ -4,7 +4,7 @@ import sbt.file
 name := "cats-saga"
 
 val mainScala = "2.12.8"
-val allScala  = Seq("2.11.12", mainScala)
+val allScala  = Seq("2.11.12", mainScala, "2.13.0")
 
 inThisBuild(
   List(
@@ -68,11 +68,11 @@ lazy val commonSettings = Seq(
         "-Ywarn-nullary-unit",
         "-opt-inline-from:<source>",
         "-opt-warnings",
-        "-opt:l:inline"
+        "-opt:l:inline",
+        "-Ypartial-unification"
       )
     case _ => Nil
   }),
-  scalacOptions ++= Seq("-Ypartial-unification"),
   resolvers ++= Seq(Resolver.sonatypeRepo("snapshots"), Resolver.sonatypeRepo("releases"))
 )
 
@@ -88,8 +88,8 @@ lazy val core = project
     coverageEnabled := true,
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-effect" % "1.3.1",
-      "org.scalatest" %% "scalatest"  % "3.0.5" % "test",
-      compilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9")
+      "org.typelevel" %% "cats-effect" % "2.0.0-M4",
+      "org.scalatest" %% "scalatest"  % "3.0.8" % "test",
+      compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
     )
   )
