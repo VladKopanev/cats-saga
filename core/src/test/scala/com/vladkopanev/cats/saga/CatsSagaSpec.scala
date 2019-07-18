@@ -216,9 +216,9 @@ class CatsSagaSpec extends FlatSpec {
 
   it should "work with other combinators" in new TestRuntime {
     val saga = for {
-      _ <- bookFlight.noCompensate
-      _ <- bookHotel retryableCompensate(cancelHotel, RetryPolicies.limitRetries(1))
-      _ <- bookCar compensate cancelCar
+           _ <- bookFlight.noCompensate
+             _ <- bookHotel retryableCompensate(cancelHotel, RetryPolicies.limitRetries(1))
+             _ <- bookCar compensate cancelCar
     } yield ()
 
     saga.transact.unsafeRunSync()
@@ -230,10 +230,8 @@ trait TestRuntime {
   self =>
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-
-  implicit val sleepIO: Sleep[IO] = new Sleep[IO] {
-    override def sleep(delay: FiniteDuration): IO[Unit] = self.sleep(delay)
-  }
+  import retry.CatsEffect._
+  implicit val sleepF: Sleep[IO] = sleepUsingTimer
 
   def sleep(d: FiniteDuration) = IO.sleep(d)
 }
