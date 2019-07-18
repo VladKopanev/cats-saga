@@ -1,10 +1,11 @@
 package com.vladkopanev.cats.saga
 
 import cats._
-import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, Fiber}
+import cats.effect.concurrent.{ Deferred, Ref }
+import cats.effect.{ Concurrent, Fiber }
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{FlatMap, Par, Step, Suceeded}
+import com.vladkopanev.cats.saga.Saga.{ FlatMap, Par, Step, Suceeded }
+import retry._
 
 import scala.util.control.NonFatal
 
@@ -192,6 +193,18 @@ object Saga {
     Step(comp, _ => F.unit)
 
   /**
+   * Constructs new Saga from action, compensating action and a scheduling policy for retrying compensation.
+   * */
+  def retryableCompensate[F[_], A](request: F[A], compensator: F[Unit], policy: RetryPolicy[F])(
+    implicit F: MonadError[F, Throwable],
+    S: Sleep[F]
+  ): Saga[F, A] = {
+    val retry =
+      retryingOnAllErrors[Unit][F, Throwable](policy, (_: Throwable, _: RetryDetails) => F.unit)(compensator)
+    compensate(request, retry)
+  }
+
+  /**
    * Constructs Saga without compensation that succeeds with a strict value.
    * */
   def succeed[F[_], A](value: A): Saga[F, A] =
@@ -211,6 +224,10 @@ object Saga {
       Saga.compensate(request, result => result.fold(_ => F.unit, compensation))
 
     def noCompensate(implicit F: InvariantMonoidal[F]): Saga[F, A] = Saga.noCompensate(request)
+
+    def retryableCompensate(compensator: F[Unit], policy: RetryPolicy[F])
+                           (implicit F: MonadError[F, Throwable], S: Sleep[F]): Saga[F, A] =
+    Saga.retryableCompensate(request, compensator, policy)
 
   }
 
