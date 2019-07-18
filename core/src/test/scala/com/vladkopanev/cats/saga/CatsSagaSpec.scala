@@ -205,7 +205,7 @@ class CatsSagaSpec extends FlatSpec {
 
     val sagaIO = for {
       actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
-      _         <- (failFlight retryableCompensate (failCompensator(actionLog), RetryPolicies.limitRetries(2))).transact
+      _         <- (failFlight retryableCompensate (failCompensator(actionLog), RetryPolicies.limitRetries(1))).transact
         .orElse(IO.unit)
       log       <- actionLog.get
     } yield log
