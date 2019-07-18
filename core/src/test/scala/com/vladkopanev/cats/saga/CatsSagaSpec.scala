@@ -205,7 +205,7 @@ class CatsSagaSpec extends FlatSpec {
 
     val sagaIO = for {
       actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
-      _         <- (failFlight retryableCompensate (failCompensator(actionLog), RetryPolicies.limitRetries(1))).transact
+      _         <- (failFlight retryableCompensate (failCompensator(actionLog), RetryPolicies.limitRetries(2))).transact
         .orElse(IO.unit)
       log       <- actionLog.get
     } yield log
@@ -216,9 +216,9 @@ class CatsSagaSpec extends FlatSpec {
 
   it should "work with other combinators" in new TestRuntime {
     val saga = for {
-           _ <- bookFlight.noCompensate
-             _ <- bookHotel retryableCompensate(cancelHotel, RetryPolicies.limitRetries(1))
-             _ <- bookCar compensate cancelCar
+      _ <- bookFlight.noCompensate
+      _ <- bookHotel retryableCompensate (cancelHotel, RetryPolicies.limitRetries(1))
+      _ <- bookCar compensate cancelCar
     } yield ()
 
     saga.transact.unsafeRunSync()
