@@ -14,11 +14,12 @@ and provide with flexible and powerful functions for building Sagas of different
 
 # Motivation
 
-This library addresses issues related to how it's hard to implement Saga pattern by yourself 
+It is really hard to implements Saga pattern by yourself, especially in microservices context. A lot of work needs to be done.
+What if we want generalize at least some part of it and do not repeat ourself? That's where `cats-saga` comes in handy.
 
 # For whom this library?
 
-You want to apply Saga pattern to implement a transaction-like method and to do it in purely functional manner.
+You want to apply Saga pattern to implement a transaction-like method.
 Moreover if you are using tagless final encoding this library is a perfect fit. 
 If you are using [ZIO](https://github.com/zio/zio), then consider looking at [zio-saga](https://github.com/VladKopanev/zio-saga).
 Although you can use this library with `ZIO` as well, [zio-saga](https://github.com/VladKopanev/zio-saga) is more
