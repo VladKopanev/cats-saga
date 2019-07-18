@@ -1,6 +1,11 @@
 # CATS-SAGA
 Purely Functional Transaction Management In Scala With Cats
 
+| CI | Coverage | Release |
+| --- | --- | --- |
+| [![Build Status][Badge-Travis]][Link-Travis] | [![Coverage Status][Badge-Codecov]][Link-Codecov] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] |
+![Cats Friendly Badge](https://typelevel.org/cats/img/cats-badge-tiny.png) 
+
 # Disclaimer
 
 This library was inspired by [goedverhaal](https://github.com/vectos/goedverhaal), but it's implementation
@@ -124,3 +129,15 @@ Because of that `cats-sagas` contains methods for parallel execution of requests
     val hotel           = bookHotel compensate cancelHotel
     val bookingSaga     = flight zipPar hotel
 ```
+
+### For ZIO users
+
+[zio-saga] (https://github.com/VladKopanev/zio-saga)
+
+[Link-Codecov]: https://codecov.io/gh/VladKopanev/cats-saga?branch=master "Codecov"
+[Link-Travis]: https://travis-ci.com/VladKopanev/cats-saga "circleci"
+[Link-SonatypeReleases]: https://repo1.maven.org/maven2/com/vladkopanev/cats-saga_2.12/ "Sonatype Releases"
+
+[Badge-Codecov]: https://codecov.io/gh/VladKopanev/cats-saga/branch/master/graph/badge.svg "Codecov" 
+[Badge-Travis]: https://travis-ci.com/VladKopanev/cats-saga.svg?branch=master "Codecov" 
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/com.vladkopanev/cats-saga_2.12.svg "Sonatype Releases"
