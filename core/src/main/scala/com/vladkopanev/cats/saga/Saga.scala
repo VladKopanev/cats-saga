@@ -200,7 +200,7 @@ object Saga {
     S: Sleep[F]
   ): Saga[F, A] = {
     val retry =
-      retryingOnAllErrors[Unit][F, Throwable](policy, (_: Throwable, _: RetryDetails) => F.unit)(compensator)
+      retryingOnAllErrors[Unit][F, Throwable](policy, (_: Throwable, _: RetryDetails) => compensator)(compensator)
     compensate(request, retry)
   }
 
