@@ -1,12 +1,13 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.concurrent.Ref
-import cats.effect.{Concurrent, ContextShift, IO, Timer}
+import cats.effect.{ Concurrent, ContextShift, IO, Timer }
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
+import retry.{ RetryPolicies, Sleep }
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -196,11 +197,43 @@ class CatsSagaSpec extends FlatSpec {
     actionLog shouldBe Vector.empty
   }
 
+  "Saga#retryableCompensate" should "construct Saga that repeats compensating action once" in new TestRuntime {
+    val failFlight: IO[Unit] = sleep(1000.millis) *> IO.raiseError(FlightBookingError())
+
+    def failCompensator(log: Ref[IO, Vector[String]]): IO[Unit] =
+      cancelFlight(log.update(_ :+ "Compensation failed")) *> IO.raiseError(FlightBookingError())
+
+    val sagaIO = for {
+      actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
+      _         <- (failFlight retryableCompensate (failCompensator(actionLog), RetryPolicies.limitRetries(1))).transact
+        .orElse(IO.unit)
+      log       <- actionLog.get
+    } yield log
+
+    val actionLog = sagaIO.unsafeRunSync()
+    actionLog shouldBe Vector.fill(2)("Compensation failed")
+  }
+
+  it should "work with other combinators" in new TestRuntime {
+    val saga = for {
+      _ <- bookFlight.noCompensate
+      _ <- bookHotel retryableCompensate(cancelHotel, RetryPolicies.limitRetries(1))
+      _ <- bookCar compensate cancelCar
+    } yield ()
+
+    saga.transact.unsafeRunSync()
+  }
+
 }
 
 trait TestRuntime {
+  self =>
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+
+  implicit val sleepIO: Sleep[IO] = new Sleep[IO] {
+    override def sleep(delay: FiniteDuration): IO[Unit] = self.sleep(delay)
+  }
 
   def sleep(d: FiniteDuration) = IO.sleep(d)
 }
