@@ -82,8 +82,7 @@ class CatsSagaSpec extends FlatSpec {
     actionLog should contain theSameElementsAs Vector("flight canceled", "hotel canceled")
   }
 
-  //TODO add this guarantee to the implementation, for now it compensates first failed request first
-  ignore should "run compensating actions in order that is opposite to which requests finished" in new TestRuntime {
+  it should "run compensating actions in order that is opposite to which requests finished" in new TestRuntime {
     val failFlight = sleep(1000.millis) *> IO.raiseError(FlightBookingError())
     val failHotel = sleep(100.millis) *> IO.raiseError(HotelBookingError())
 
