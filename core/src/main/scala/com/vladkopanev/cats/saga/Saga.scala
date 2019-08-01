@@ -1,10 +1,10 @@
 package com.vladkopanev.cats.saga
 
 import cats._
-import cats.effect.concurrent.{ Deferred, Ref }
-import cats.effect.{ Concurrent, Fiber }
+import cats.effect.concurrent.{Deferred, Ref}
+import cats.effect.{Concurrent, Fiber}
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{ FlatMap, Par, Step, Suceeded }
+import com.vladkopanev.cats.saga.Saga.{FlatMap, Par, SagaErr, Step, Suceeded}
 import retry._
 
 import scala.util.control.NonFatal
@@ -46,30 +46,33 @@ sealed abstract class Saga[F[_], A] {
     def interpret[X](saga: Saga[F, X]): F[(X, F[Unit])] = saga match {
       case Suceeded(value) => F.pure((value, F.unit))
       case Step(action, compensator) =>
-        action.map(x => (x, compensator(Right(x)))).onError {
-          case NonFatal(ex) => compensator(Left(ex))
+        action.attempt.flatMap {
+          case Right(x)   => (x, compensator(Right(x))).pure[F]
+          case e@Left(ex) => F.raiseError(SagaErr(ex, compensator(e)))
         }
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
           case (v, prevStepCompensator) =>
-            interpret(continuation(v)).onError {
-              case NonFatal(ex) => prevStepCompensator
+            interpret(continuation(v)).handleErrorWith {
+              case NonFatal(ex: SagaErr[F]) => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
             }
         }
-      case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X)) =>
+      case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X), compensate) =>
         def coordinate[A, B, C](f: (A, B) => C)(
           fasterSaga: Either[Throwable, (A, F[Unit])],
           slowerSaga: Fiber[F, (B, F[Unit])]
         ): F[(C, F[Unit])] = fasterSaga match {
           case Right((a, compA)) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
-              case Right((b, compB)) => F.pure(f(a, b) -> compB *> compA)
-              case Left(e)           => compA *> e.raiseError(F)
+              case Right((b, compB))   => F.pure(f(a, b) -> compensate(compB, compA))
+              case Left(e: SagaErr[F]) => F.raiseError(e.copy(compensator = compensate(e.compensator, compA)))
             }
-          case Left(e) =>
+          case Left(e: SagaErr[F]) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
-              case Right((b, compB)) => compB *> e.raiseError(F)
-              case Left(ea)          => ea.addSuppressed(e); ea.raiseError(F)
+              case Right((b, compB))    => F.raiseError(e.copy(compensator = compensate(compB, e.compensator)))
+              case Left(ea: SagaErr[F]) =>
+                ea.cause.addSuppressed(e.cause)
+                F.raiseError(ea.copy(compensator = compensate(ea.compensator, e.compensator)))
             }
         }
 
@@ -78,22 +81,22 @@ sealed abstract class Saga[F[_], A] {
         race(interpret(left), interpret(right))(coordinate(combine), coordinate(fliped))
     }
 
-    interpret(this).map(_._1)
+    interpret(this).map(_._1).handleErrorWith { case e: SagaErr[F] => e.compensator *> F.raiseError(e.cause)}
   }
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result in a tuple.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipPar[B](that: Saga[F, B]): Saga[F, (A, B)] =
+  def zipPar[B](that: Saga[F, B])(implicit A: Apply[F]): Saga[F, (A, B)] =
     zipWithPar(that)((_, _))
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result with specified function `f`.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C): Saga[F, C] =
-    Saga.Par(this, that, f)
+  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C)(implicit A: Apply[F]): Saga[F, C] =
+    Saga.Par(this, that, f, _ *> _)
 
   /**
    * Degraded `raceWith` function implementation from `ZIO`
@@ -128,7 +131,12 @@ object Saga {
   private case class Suceeded[F[_], A](value: A)                                              extends Saga[F, A]
   private case class Step[F[_], A](action: F[A], compensate: Either[Throwable, A] => F[Unit]) extends Saga[F, A]
   private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                  extends Saga[F, B]
-  private case class Par[F[_], A, B, C](fa: Saga[F, A], fb: Saga[F, B], combine: (A, B) => C) extends Saga[F, C]
+  private case class Par[F[_], A, B, C](fa: Saga[F, A],
+                                        fb: Saga[F, B],
+                                        combine: (A, B) => C,
+                                        compensate: (F[Unit], F[Unit]) => F[Unit]) extends Saga[F, C]
+
+  private case class SagaErr[F[_]](cause: Throwable, compensator: F[Unit]) extends Throwable(cause)
 
   /**
    * Constructs new Saga from action and compensating action.

@@ -49,7 +49,7 @@ class CatsSagaSpec extends FlatSpec {
     } yield log
 
     val actionLog = sagaIO.unsafeRunSync()
-    actionLog shouldBe Vector("hotel canceled", "flight canceled")
+    actionLog shouldBe Vector("flight canceled", "hotel canceled")
   }
 
   it should "run both compensating actions in case left request fails" in new TestRuntime {
@@ -64,7 +64,7 @@ class CatsSagaSpec extends FlatSpec {
     } yield log
 
     val actionLog = sagaIO.unsafeRunSync()
-    actionLog shouldBe Vector("hotel canceled", "flight canceled")
+    actionLog shouldBe Vector("flight canceled", "hotel canceled")
   }
 
   it should "run both compensating actions in case both requests fails" in new TestRuntime {
