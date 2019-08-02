@@ -95,7 +95,15 @@ sealed abstract class Saga[F[_], A] {
    * Both compensating actions would be executed in case of failure.
    * */
   def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C)(implicit A: Apply[F]): Saga[F, C] =
-    Saga.Par(this, that, f, _ *> _)
+    zipWithParAll(that)(f)(_ *> _)
+
+  /**
+   * Returns Saga that will execute this Saga in parallel with other, combining the result with specified function `f`
+   * and combining the compensating actions with function `g` (this allows user to choose a strategy of running both
+   * compensating actions e.g. in sequence or in parallel).
+   * */
+  def zipWithParAll[B, C](that: Saga[F, B])(f: (A, B) => C)(g: (F[Unit], F[Unit]) => F[Unit]): Saga[F, C] =
+    Saga.Par(this, that, f, g)
 
   /**
    * Degraded `raceWith` function implementation from `ZIO`

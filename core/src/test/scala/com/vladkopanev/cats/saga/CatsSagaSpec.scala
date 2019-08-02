@@ -317,6 +317,27 @@ class CatsSagaSpec extends FlatSpec {
     actionLog shouldBe Vector("flight canceled", "hotel canceled")
   }
 
+  "Saga#zipWithParAll" should "allow combining compensations in parallel" in new TestRuntime {
+    val failFlight = IO.raiseError(FlightBookingError())
+    val failHotel = IO.raiseError(HotelBookingError())
+
+    def cancelFlightC(actionLog: Ref[IO, Vector[String]]) = sleep(100.millis) *>
+      cancelFlight(actionLog.update(_ :+ "flight canceled"))
+    def cancelHotelC(actionLog: Ref[IO, Vector[String]]) = sleep(100.millis) *>
+      cancelHotel(actionLog.update(_ :+ "hotel canceled"))
+
+    val sagaIO = for {
+      actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
+      _         <- (failFlight compensate cancelFlightC(actionLog)).zipWithParAll(
+        failHotel compensate cancelHotelC(actionLog))((_, _) => ())((a, b) => IO.racePair(a, b).void).transact.orElse(IO.unit)
+      log <- actionLog.get
+    } yield log
+
+    val actionLog = sagaIO.unsafeRunSync()
+
+    actionLog should contain theSameElementsAs Vector("flight canceled", "hotel canceled")
+  }
+
 }
 
 trait TestRuntime {
