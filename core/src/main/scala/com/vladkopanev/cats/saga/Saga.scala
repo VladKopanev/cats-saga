@@ -7,8 +7,6 @@ import cats.implicits._
 import com.vladkopanev.cats.saga.Saga.{FlatMap, Par, SagaErr, Step, Suceeded}
 import retry._
 
-import scala.util.control.NonFatal
-
 /**
  * A Saga is an immutable structure that models a distributed transaction.
  *
