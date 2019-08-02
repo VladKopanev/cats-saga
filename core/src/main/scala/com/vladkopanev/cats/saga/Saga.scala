@@ -1,13 +1,11 @@
 package com.vladkopanev.cats.saga
 
 import cats._
-import cats.effect.concurrent.{ Deferred, Ref }
-import cats.effect.{ Concurrent, Fiber }
+import cats.effect.concurrent.{Deferred, Ref}
+import cats.effect.{Concurrent, Fiber}
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{ FlatMap, Par, Step, Suceeded }
+import com.vladkopanev.cats.saga.Saga.{FlatMap, Par, SagaErr, Step, Suceeded}
 import retry._
-
-import scala.util.control.NonFatal
 
 /**
  * A Saga is an immutable structure that models a distributed transaction.
@@ -45,31 +43,35 @@ sealed abstract class Saga[F[_], A] {
   def transact(implicit F: Concurrent[F]): F[A] = {
     def interpret[X](saga: Saga[F, X]): F[(X, F[Unit])] = saga match {
       case Suceeded(value) => F.pure((value, F.unit))
-      case Step(action, compensator) =>
-        action.map(x => (x, compensator(Right(x)))).onError {
-          case NonFatal(ex) => compensator(Left(ex))
+      case s: Step[F, X, Throwable] =>
+        s.action.attempt.flatMap {
+          case Right(x)   => (x, s.compensate(Right(x))).pure[F]
+          case e@Left(ex) => F.raiseError(SagaErr(ex, s.compensate(e)))
         }
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
           case (v, prevStepCompensator) =>
-            interpret(continuation(v)).onError {
-              case NonFatal(ex) => prevStepCompensator
+            interpret(continuation(v)).attempt.flatMap {
+              case Right((x, currCompensator)) => F.pure((x, currCompensator *> prevStepCompensator))
+              case Left(ex: SagaErr[F])        => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
             }
         }
-      case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X)) =>
+      case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X), compensate) =>
         def coordinate[A, B, C](f: (A, B) => C)(
           fasterSaga: Either[Throwable, (A, F[Unit])],
           slowerSaga: Fiber[F, (B, F[Unit])]
         ): F[(C, F[Unit])] = fasterSaga match {
           case Right((a, compA)) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
-              case Right((b, compB)) => F.pure(f(a, b) -> compB *> compA)
-              case Left(e)           => compA *> e.raiseError(F)
+              case Right((b, compB))   => F.pure(f(a, b) -> compensate(compB, compA))
+              case Left(e: SagaErr[F]) => F.raiseError(e.copy(compensator = compensate(e.compensator, compA)))
             }
-          case Left(e) =>
+          case Left(e: SagaErr[F]) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
-              case Right((b, compB)) => compB *> e.raiseError(F)
-              case Left(ea)          => ea.addSuppressed(e); ea.raiseError(F)
+              case Right((b, compB))    => F.raiseError(e.copy(compensator = compensate(compB, e.compensator)))
+              case Left(ea: SagaErr[F]) =>
+                ea.cause.addSuppressed(e.cause)
+                F.raiseError(ea.copy(compensator = compensate(ea.compensator, e.compensator)))
             }
         }
 
@@ -78,22 +80,30 @@ sealed abstract class Saga[F[_], A] {
         race(interpret(left), interpret(right))(coordinate(combine), coordinate(fliped))
     }
 
-    interpret(this).map(_._1)
+    interpret(this).map(_._1).handleErrorWith { case e: SagaErr[F] => e.compensator *> F.raiseError(e.cause)}
   }
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result in a tuple.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipPar[B](that: Saga[F, B]): Saga[F, (A, B)] =
+  def zipPar[B](that: Saga[F, B])(implicit A: Apply[F]): Saga[F, (A, B)] =
     zipWithPar(that)((_, _))
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result with specified function `f`.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C): Saga[F, C] =
-    Saga.Par(this, that, f)
+  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C)(implicit A: Apply[F]): Saga[F, C] =
+    zipWithParAll(that)(f)(_ *> _)
+
+  /**
+   * Returns Saga that will execute this Saga in parallel with other, combining the result with specified function `f`
+   * and combining the compensating actions with function `g` (this allows user to choose a strategy of running both
+   * compensating actions e.g. in sequence or in parallel).
+   * */
+  def zipWithParAll[B, C](that: Saga[F, B])(f: (A, B) => C)(g: (F[Unit], F[Unit]) => F[Unit]): Saga[F, C] =
+    Saga.Par(this, that, f, g)
 
   /**
    * Degraded `raceWith` function implementation from `ZIO`
@@ -126,35 +136,40 @@ sealed abstract class Saga[F[_], A] {
 object Saga {
 
   private case class Suceeded[F[_], A](value: A)                                              extends Saga[F, A]
-  private case class Step[F[_], A](action: F[A], compensate: Either[Throwable, A] => F[Unit]) extends Saga[F, A]
+  private case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
   private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                  extends Saga[F, B]
-  private case class Par[F[_], A, B, C](fa: Saga[F, A], fb: Saga[F, B], combine: (A, B) => C) extends Saga[F, C]
+  private case class Par[F[_], A, B, C](fa: Saga[F, A],
+                                        fb: Saga[F, B],
+                                        combine: (A, B) => C,
+                                        compensate: (F[Unit], F[Unit]) => F[Unit]) extends Saga[F, C]
+
+  private case class SagaErr[F[_]](cause: Throwable, compensator: F[Unit]) extends Throwable(cause)
 
   /**
    * Constructs new Saga from action and compensating action.
    * */
   def compensate[F[_], A](comp: F[A], compensation: F[Unit]): Saga[F, A] =
-    compensate(comp, _ => compensation)
+    compensate(comp, (_: Either[_, _]) => compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied the result of this request.
    * */
-  def compensate[F[_], A](comp: F[A], compensation: Either[Throwable, A] => F[Unit]): Saga[F, A] =
+  def compensate[F[_], E <: Throwable, A](comp: F[A], compensation: Either[E, A] => F[Unit]): Saga[F, A] =
     Step(comp, compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to failed result of this request.
    * If given action succeeds associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfFail[F[_], A](comp: F[A], compensation: Throwable => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-    compensate(comp, result => result.fold(compensation, _ => F.unit))
+  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    compensate[F, E, A](request, (result: Either[E, A]) => result.fold(compensation, _ => F.unit))
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to successful result of this request.
    * If given action fails associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfSuccess[F[_], A](comp: F[A], compensation: A => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-    compensate(comp, result => result.fold(_ => F.unit, compensation))
+  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    compensate(request, (result: Either[Throwable, A]) => result.fold(_ => F.unit, compensation))
 
   /**
    * Runs all Sagas in iterable in parallel and collects
@@ -190,7 +205,7 @@ object Saga {
    * Constructs new `no-op` Saga that will do nothing on error.
    * */
   def noCompensate[F[_], A](comp: F[A])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
-    Step(comp, _ => F.unit)
+    Step(comp, (_: Either[Throwable, A]) => F.unit)
 
   /**
    * Constructs new Saga from action, compensating action and a scheduling policy for retrying compensation.
@@ -214,14 +229,14 @@ object Saga {
 
     def compensate(compensator: F[Unit]): Saga[F, A] = Saga.compensate(request, compensator)
 
-    def compensate(compensation: Either[Throwable, A] => F[Unit]): Saga[F, A] =
+    def compensate[E <: Throwable](compensation: Either[E, A] => F[Unit]): Saga[F, A] =
       Saga.compensate(request, compensation)
 
-    def compensateIfFail(compensation: Throwable => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-      Saga.compensate(request, result => result.fold(compensation, _ => F.unit))
+    def compensateIfFail[E <: Throwable](compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+      Saga.compensateIfFail(request, compensation)
 
-    def compensateIfSuccess(compensation: A => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-      Saga.compensate(request, result => result.fold(_ => F.unit, compensation))
+    def compensateIfSuccess(compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+      Saga.compensateIfSuccess(request, compensation)
 
     def noCompensate(implicit F: InvariantMonoidal[F]): Saga[F, A] = Saga.noCompensate(request)
 

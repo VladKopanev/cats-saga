@@ -10,21 +10,14 @@ Purely Functional Transaction Management In Scala With Cats
 
 This library was inspired by [goedverhaal](https://github.com/vectos/goedverhaal), but it's implementation
 and semantics differs, it tries to be semantically consistent with [zio-saga](https://github.com/VladKopanev/zio-saga) 
-and provide with flexible and powerful functions for building Sagas of different complexities.
-
-# Motivation
-
-It is really hard to implements Saga pattern by yourself, especially in microservices context. A lot of work needs to be done.
-What if we want generalize at least some part of it and do not repeat ourself? That's where `cats-saga` comes in handy.
+and provide you with flexible and powerful functions for building Sagas of different complexities.
 
 # For whom this library?
 
-You want to apply Saga pattern to implement a transaction-like method.
-Moreover if you are using tagless final encoding this library is a perfect fit. 
-If you are using [ZIO](https://github.com/zio/zio), then consider looking at [zio-saga](https://github.com/VladKopanev/zio-saga).
-Although you can use this library with `ZIO` as well, [zio-saga](https://github.com/VladKopanev/zio-saga) is more
-native to `ZIO`. You can think of `cats-saga` as a more generic version of `zio-saga` and of `zio-saga` as a specialized 
-version of `cats-saga`.
+This library is designed for those who want to apply Saga pattern on their codebase and to encode long-running transactions.
+Moreover if you use tagless final encoding this library is a perfect fit. 
+Also consider looking at [zio-saga](https://github.com/VladKopanev/zio-saga), it's designed specifically for 
+[ZIO](https://github.com/zio/zio) users. Although you could use this library with `ZIO` as well.
 
 # Example of usage:
 
@@ -43,7 +36,7 @@ Let's think for a moment about how we could implement this pattern without any s
 
 The naive implementation could look like this:
 
-```
+```scala
 def orderSaga(): IO[Unit] = {
   for {
     _ <- collectPayments(2d, 2) handleErrorWith (_ => refundPayments(2d, 2))
@@ -61,7 +54,7 @@ full rollback logic to be triggered in Saga, whatever error occurred.
  
 Second try, this time let's somehow trigger all compensating actions.
   
-```
+```scala
 def orderSaga: IO[Unit] = {
   collectPayments(2d, 2).flatMap { _ =>
     assignLoyaltyPoints(1d, 1).flatMap { _ =>
@@ -84,7 +77,7 @@ repeating the same boilerplate code from service to service.
 
 With `cats-saga` we could do it like so:
 
-```
+```scala
 def orderSaga(): IO[Unit] = {
   import com.vladkopanev.cats.saga.Saga._
     
@@ -102,7 +95,7 @@ To materialize `Saga` object to `IO` when it's complete it is required to use `t
 
 Because `Saga` is effect polymorphic you could use whatever effect type you want in tagless final style:
 
-```
+```scala
 def orderSaga[F[_]: Concurrent](): F[Unit] = {
   import com.vladkopanev.cats.saga.Saga._
     
@@ -119,17 +112,49 @@ As you can see with `cats-saga` the process of building your Sagas is greatly si
 This library lets you compose transaction steps both in sequence and in parallel, 
 this feature gives you more powerful control over transaction execution.
 
-# Additional capabilities
+# Advanced
+
+### Retrying
+`cats-saga` provides you with functions for retrying your compensating actions, so you could write:
+
+ ```scala
+collectPayments(2d, 2) retryableCompensate (refundPayments(2d, 2), RetryPolicies.exponentialBackoff(1.second))
+```
+
+In this example your Saga will retry compensating action `refundPayments` after exponentially 
+increasing timeouts (based on [cats-retry](https://github.com/cb372/cats-retry)).
+
 
 ### Parallel execution
 Saga pattern does not limit transactional requests to run only in sequence.
 Because of that `cats-sagas` contains methods for parallel execution of requests. 
 
-```
+```scala
     val flight          = bookFlight compensate cancelFlight
     val hotel           = bookHotel compensate cancelHotel
     val bookingSaga     = flight zipPar hotel
 ```
+
+Note that in this case two compensations would run in sequence, one after another by default.
+If you need to execute compensations in parallel consider using `Saga#zipWithParAll` function, it allows arbitrary 
+combinations of compensating actions.
+
+### Result dependent compensations
+
+Depending on the result of compensable effect you may want to execute specific compensation, for such cases `cats-saga`
+contains specific functions:
+- `compensate(compensation: Either[E, A] => F[Unit])` this function makes compensation dependent on the result 
+of corresponding effect that either fails or succeeds.
+- `compensateIfFail(compensation: E => F[Unit])` this function makes compensation dependent only on error type 
+hence compensation will only be triggered if corresponding effect fails.
+- `compensateIfSuccess(compensation: A => F[Unit])` this function makes compensation dependent only on
+successful result type hence compensation can only occur if corresponding effect succeeds.
+
+### Notes on compensation action failures
+
+By default, if some compensation action fails no other compensation would run and therefore user has the ability to 
+choose what to do: stop compensation (by default), retry failed compensation step until it succeeds or proceed to next 
+compensation steps ignoring the failure.
 
 ### For ZIO users
 
