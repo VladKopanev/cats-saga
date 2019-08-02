@@ -53,8 +53,9 @@ sealed abstract class Saga[F[_], A] {
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
           case (v, prevStepCompensator) =>
-            interpret(continuation(v)).handleErrorWith {
-              case NonFatal(ex: SagaErr[F]) => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
+            interpret(continuation(v)).attempt.flatMap {
+              case Right((x, currCompensator)) => F.pure((x, currCompensator *> prevStepCompensator))
+              case Left(ex: SagaErr[F])        => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
             }
         }
       case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X), compensate) =>

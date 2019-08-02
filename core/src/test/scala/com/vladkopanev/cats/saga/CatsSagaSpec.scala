@@ -223,10 +223,23 @@ class CatsSagaSpec extends FlatSpec {
     saga.transact.unsafeRunSync()
   }
 
+  "Saga#flatten" should "execute outer effect first and then the inner one producing the result of it" in new TestRuntime {
+    val sagaIO = for {
+      actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
+      outer     = bookFlight compensate cancelFlight(actionLog.update(_ :+ "flight canceled"))
+      inner     = bookHotel compensate cancelHotel(actionLog.update(_ :+ "hotel canceled"))
+      failCar = IO.raiseError[Unit](CarBookingError()) compensate cancelCar(actionLog.update(_ :+ "car canceled"))
+      _   <- outer.map(_ => inner).flatten[PaymentInfo].flatMap(_ => failCar).transact.orElse(IO.unit)
+      log <- actionLog.get
+    } yield log
+
+    val actionLog = sagaIO.unsafeRunSync()
+    actionLog shouldBe Vector("car canceled", "hotel canceled", "flight canceled")
+  }
+
 }
 
 trait TestRuntime {
-  self =>
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   import retry.CatsEffect._
