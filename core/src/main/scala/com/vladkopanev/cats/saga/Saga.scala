@@ -45,10 +45,10 @@ sealed abstract class Saga[F[_], A] {
   def transact(implicit F: Concurrent[F]): F[A] = {
     def interpret[X](saga: Saga[F, X]): F[(X, F[Unit])] = saga match {
       case Suceeded(value) => F.pure((value, F.unit))
-      case Step(action, compensator) =>
-        action.attempt.flatMap {
-          case Right(x)   => (x, compensator(Right(x))).pure[F]
-          case e@Left(ex) => F.raiseError(SagaErr(ex, compensator(e)))
+      case s: Step[F, X, Throwable] =>
+        s.action.attempt.flatMap {
+          case Right(x)   => (x, s.compensate(Right(x))).pure[F]
+          case e@Left(ex) => F.raiseError(SagaErr(ex, s.compensate(e)))
         }
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
@@ -130,7 +130,7 @@ sealed abstract class Saga[F[_], A] {
 object Saga {
 
   private case class Suceeded[F[_], A](value: A)                                              extends Saga[F, A]
-  private case class Step[F[_], A](action: F[A], compensate: Either[Throwable, A] => F[Unit]) extends Saga[F, A]
+  private case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
   private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                  extends Saga[F, B]
   private case class Par[F[_], A, B, C](fa: Saga[F, A],
                                         fb: Saga[F, B],
@@ -143,27 +143,27 @@ object Saga {
    * Constructs new Saga from action and compensating action.
    * */
   def compensate[F[_], A](comp: F[A], compensation: F[Unit]): Saga[F, A] =
-    compensate(comp, _ => compensation)
+    compensate(comp, (_: Either[_, _]) => compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied the result of this request.
    * */
-  def compensate[F[_], A](comp: F[A], compensation: Either[Throwable, A] => F[Unit]): Saga[F, A] =
+  def compensate[F[_], E <: Throwable, A](comp: F[A], compensation: Either[E, A] => F[Unit]): Saga[F, A] =
     Step(comp, compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to failed result of this request.
    * If given action succeeds associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfFail[F[_], A](comp: F[A], compensation: Throwable => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-    compensate(comp, result => result.fold(compensation, _ => F.unit))
+  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    compensate[F, E, A](request, (result: Either[E, A]) => result.fold(compensation, _ => F.unit))
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to successful result of this request.
    * If given action fails associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfSuccess[F[_], A](comp: F[A], compensation: A => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-    compensate(comp, result => result.fold(_ => F.unit, compensation))
+  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    compensate(request, (result: Either[Throwable, A]) => result.fold(_ => F.unit, compensation))
 
   /**
    * Runs all Sagas in iterable in parallel and collects
@@ -199,7 +199,7 @@ object Saga {
    * Constructs new `no-op` Saga that will do nothing on error.
    * */
   def noCompensate[F[_], A](comp: F[A])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
-    Step(comp, _ => F.unit)
+    Step(comp, (_: Either[Throwable, A]) => F.unit)
 
   /**
    * Constructs new Saga from action, compensating action and a scheduling policy for retrying compensation.
@@ -223,14 +223,14 @@ object Saga {
 
     def compensate(compensator: F[Unit]): Saga[F, A] = Saga.compensate(request, compensator)
 
-    def compensate(compensation: Either[Throwable, A] => F[Unit]): Saga[F, A] =
+    def compensate[E <: Throwable](compensation: Either[E, A] => F[Unit]): Saga[F, A] =
       Saga.compensate(request, compensation)
 
-    def compensateIfFail(compensation: Throwable => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-      Saga.compensate(request, result => result.fold(compensation, _ => F.unit))
+    def compensateIfFail[E <: Throwable](compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+      Saga.compensateIfFail(request, compensation)
 
-    def compensateIfSuccess(compensation: A => F[Unit])(F: InvariantMonoidal[F]): Saga[F, A] =
-      Saga.compensate(request, result => result.fold(_ => F.unit, compensation))
+    def compensateIfSuccess(compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+      Saga.compensateIfSuccess(request, compensation)
 
     def noCompensate(implicit F: InvariantMonoidal[F]): Saga[F, A] = Saga.noCompensate(request)
 
