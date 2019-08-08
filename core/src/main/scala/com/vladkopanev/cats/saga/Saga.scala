@@ -1,10 +1,10 @@
 package com.vladkopanev.cats.saga
 
 import cats._
-import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, Fiber}
+import cats.effect.concurrent.{ Deferred, Ref }
+import cats.effect.{ Concurrent, Fiber }
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{FlatMap, Par, SagaErr, Step, Suceeded}
+import com.vladkopanev.cats.saga.Saga.{ FlatMap, Par, SagaErr, Step, Suceeded }
 import retry._
 
 /**
@@ -45,8 +45,8 @@ sealed abstract class Saga[F[_], A] {
       case Suceeded(value) => F.pure((value, F.unit))
       case s: Step[F, X, Throwable] =>
         s.action.attempt.flatMap {
-          case Right(x)   => (x, s.compensate(Right(x))).pure[F]
-          case e@Left(ex) => F.raiseError(SagaErr(ex, s.compensate(e)))
+          case Right(x)     => (x, s.compensate(Right(x))).pure[F]
+          case e @ Left(ex) => F.raiseError(SagaErr(ex, s.compensate(e)))
         }
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
@@ -68,7 +68,7 @@ sealed abstract class Saga[F[_], A] {
             }
           case Left(e: SagaErr[F]) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
-              case Right((b, compB))    => F.raiseError(e.copy(compensator = compensate(compB, e.compensator)))
+              case Right((b, compB)) => F.raiseError(e.copy(compensator = compensate(compB, e.compensator)))
               case Left(ea: SagaErr[F]) =>
                 ea.cause.addSuppressed(e.cause)
                 F.raiseError(ea.copy(compensator = compensate(ea.compensator, e.compensator)))
@@ -80,7 +80,7 @@ sealed abstract class Saga[F[_], A] {
         race(interpret(left), interpret(right))(coordinate(combine), coordinate(fliped))
     }
 
-    interpret(this).map(_._1).handleErrorWith { case e: SagaErr[F] => e.compensator *> F.raiseError(e.cause)}
+    interpret(this).map(_._1).handleErrorWith { case e: SagaErr[F] => e.compensator *> F.raiseError(e.cause) }
   }
 
   /**
@@ -112,10 +112,12 @@ sealed abstract class Saga[F[_], A] {
     leftDone: (Either[Throwable, A], Fiber[F, B]) => F[C],
     rightDone: (Either[Throwable, B], Fiber[F, A]) => F[C]
   )(implicit F: Concurrent[F]) = {
-    def arbiter[A1, B1](f: (Either[Throwable, A1], Fiber[F, B1]) => F[C],
-                        loser: Fiber[F, B1],
-                        race: Ref[F, Int],
-                        done: Deferred[F, Either[Throwable, C]])(res: Either[Throwable, A1]): F[Unit] =
+    def arbiter[A1, B1](
+      f: (Either[Throwable, A1], Fiber[F, B1]) => F[C],
+      loser: Fiber[F, B1],
+      race: Ref[F, Int],
+      done: Deferred[F, Either[Throwable, C]]
+    )(res: Either[Throwable, A1]): F[Unit] =
       race.modify(c => (c + 1) -> (if (c > 0) F.unit else f(res, loser).attempt >>= done.complete)).flatten
 
     for {
@@ -135,13 +137,15 @@ sealed abstract class Saga[F[_], A] {
 
 object Saga {
 
-  private case class Suceeded[F[_], A](value: A)                                              extends Saga[F, A]
+  private case class Suceeded[F[_], A](value: A)                                                      extends Saga[F, A]
   private case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
-  private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                  extends Saga[F, B]
-  private case class Par[F[_], A, B, C](fa: Saga[F, A],
-                                        fb: Saga[F, B],
-                                        combine: (A, B) => C,
-                                        compensate: (F[Unit], F[Unit]) => F[Unit]) extends Saga[F, C]
+  private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                          extends Saga[F, B]
+  private case class Par[F[_], A, B, C](
+    fa: Saga[F, A],
+    fb: Saga[F, B],
+    combine: (A, B) => C,
+    compensate: (F[Unit], F[Unit]) => F[Unit]
+  ) extends Saga[F, C]
 
   private case class SagaErr[F[_]](cause: Throwable, compensator: F[Unit]) extends Throwable(cause)
 
@@ -161,14 +165,18 @@ object Saga {
    * Constructs new Saga from action and compensation function that will be applied only to failed result of this request.
    * If given action succeeds associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(
+    implicit F: InvariantMonoidal[F]
+  ): Saga[F, A] =
     compensate[F, E, A](request, (result: Either[E, A]) => result.fold(compensation, _ => F.unit))
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to successful result of this request.
    * If given action fails associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(
+    implicit F: InvariantMonoidal[F]
+  ): Saga[F, A] =
     compensate(request, (result: Either[Throwable, A]) => result.fold(_ => F.unit, compensation))
 
   /**
@@ -240,9 +248,11 @@ object Saga {
 
     def noCompensate(implicit F: InvariantMonoidal[F]): Saga[F, A] = Saga.noCompensate(request)
 
-    def retryableCompensate(compensator: F[Unit], policy: RetryPolicy[F])
-                           (implicit F: MonadError[F, Throwable], S: Sleep[F]): Saga[F, A] =
-    Saga.retryableCompensate(request, compensator, policy)
+    def retryableCompensate(
+      compensator: F[Unit],
+      policy: RetryPolicy[F]
+    )(implicit F: MonadError[F, Throwable], S: Sleep[F]): Saga[F, A] =
+      Saga.retryableCompensate(request, compensator, policy)
 
   }
 
