@@ -1,9 +1,10 @@
 # CATS-SAGA
 Purely Functional Transaction Management In Scala With Cats
 
-| CI | Coverage | Release |
-| --- | --- | --- |
-| [![Build Status][Badge-Travis]][Link-Travis] | [![Coverage Status][Badge-Codecov]][Link-Codecov] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] |
+| CI | Coverage | Release |  |
+| --- | --- | --- | --- |
+| [![Build Status][Badge-Travis]][Link-Travis] | [![Coverage Status][Badge-Codecov]][Link-Codecov] | [![Release Artifacts][Badge-SonatypeReleases]][Link-SonatypeReleases] | [![Scala Steward badge][Badge-ScalaSteward]][Link-ScalaSteward] |
+
 ![Cats Friendly Badge](https://typelevel.org/cats/img/cats-badge-tiny.png) 
 
 # Disclaimer
@@ -158,12 +159,14 @@ compensation steps ignoring the failure.
 
 ### For ZIO users
 
-[zio-saga] (https://github.com/VladKopanev/zio-saga)
+[zio-saga](https://github.com/VladKopanev/zio-saga)
 
 [Link-Codecov]: https://codecov.io/gh/VladKopanev/cats-saga?branch=master "Codecov"
 [Link-Travis]: https://travis-ci.com/VladKopanev/cats-saga "circleci"
 [Link-SonatypeReleases]: https://repo1.maven.org/maven2/com/vladkopanev/cats-saga_2.12/ "Sonatype Releases"
+[Link-ScalaSteward]: https://scala-steward.org
 
 [Badge-Codecov]: https://codecov.io/gh/VladKopanev/cats-saga/branch/master/graph/badge.svg "Codecov" 
 [Badge-Travis]: https://travis-ci.com/VladKopanev/cats-saga.svg?branch=master "Codecov" 
 [Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/com.vladkopanev/cats-saga_2.12.svg "Sonatype Releases"
+[Badge-ScalaSteward]: https://img.shields.io/badge/Scala_Steward-helping-brightgreen.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=
