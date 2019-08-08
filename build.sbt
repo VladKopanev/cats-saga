@@ -91,6 +91,8 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % "2.0.0-RC1",
+      "org.typelevel"              %% "cats-laws"                 % "1.1.0" % Test,
+      "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.6" % Test,
       "org.scalatest"              %% "scalatest"                 % "3.0.8" % Test,
       "com.github.cb372"           %% "cats-retry-core"           % catsRetryVersion % Optional,
       "com.github.cb372"           %% "cats-retry-cats-effect"    % catsRetryVersion % Optional,
