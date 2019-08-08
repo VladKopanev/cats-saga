@@ -256,7 +256,7 @@ object Saga {
 
   }
 
-  implicit def monad[F[_]]: Monad[Saga[F, ?]] = new Monad[Saga[F, ?]] {
+  implicit def monad[F[_]]: Monad[Saga[F, *]] = new Monad[Saga[F, *]] {
     override def pure[A](x: A): Saga[F, A] = Saga.succeed(x)
 
     override def flatMap[A, B](fa: Saga[F, A])(f: A => Saga[F, B]): Saga[F, B] = fa.flatMap(f)
