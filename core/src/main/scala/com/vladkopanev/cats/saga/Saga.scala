@@ -17,7 +17,7 @@ import retry._
  *      If error occurs Saga will execute compensating actions starting from action that corresponds to failed request
  *      till the first already completed request.
  * */
-sealed abstract class Saga[F[_], A] {
+sealed abstract class Saga[F[+_], +A] {
 
   /**
    * Maps the resulting value `A` of this Saga to value `B` with function `f`.
@@ -149,10 +149,10 @@ sealed abstract class Saga[F[_], A] {
 
 object Saga {
 
-  private case class Suceeded[F[_], A](value: A)                                                      extends Saga[F, A]
-  private case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
-  private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                          extends Saga[F, B]
-  private case class Par[F[_], A, B, C](
+  private case class Suceeded[F[+_], A](value: A)                                                      extends Saga[F, A]
+  private case class Step[F[+_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
+  private case class FlatMap[F[+_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                          extends Saga[F, B]
+  private case class Par[F[+_], A, B, C](
     fa: Saga[F, A],
     fb: Saga[F, B],
     combine: (A, B) => C,
@@ -164,20 +164,20 @@ object Saga {
   /**
    * Constructs new Saga from action and compensating action.
    * */
-  def compensate[F[_], A](comp: F[A], compensation: F[Unit]): Saga[F, A] =
+  def compensate[F[+_], A](comp: F[A], compensation: F[Unit]): Saga[F, A] =
     compensate(comp, (_: Either[_, _]) => compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied the result of this request.
    * */
-  def compensate[F[_], E <: Throwable, A](comp: F[A], compensation: Either[E, A] => F[Unit]): Saga[F, A] =
+  def compensate[F[+_], E <: Throwable, A](comp: F[A], compensation: Either[E, A] => F[Unit]): Saga[F, A] =
     Step(comp, compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to failed result of this request.
    * If given action succeeds associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(
+  def compensateIfFail[F[+_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(
     implicit F: InvariantMonoidal[F]
   ): Saga[F, A] =
     compensate[F, E, A](request, (result: Either[E, A]) => result.fold(compensation, _ => F.unit))
@@ -186,7 +186,7 @@ object Saga {
    * Constructs new Saga from action and compensation function that will be applied only to successful result of this request.
    * If given action fails associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(
+  def compensateIfSuccess[F[+_], A](request: F[A], compensation: A => F[Unit])(
     implicit F: InvariantMonoidal[F]
   ): Saga[F, A] =
     compensate(request, (result: Either[Throwable, A]) => result.fold(_ => F.unit, compensation))
@@ -195,20 +195,20 @@ object Saga {
    * Runs all Sagas in iterable in parallel and collects
    * the results.
    */
-  def collectAllPar[F[_]: Applicative, A](sagas: Iterable[Saga[F, A]]): Saga[F, List[A]] =
+  def collectAllPar[F[+_]: Applicative, A](sagas: Iterable[Saga[F, A]]): Saga[F, List[A]] =
     foreachPar[F, Saga[F, A], A](sagas)(identity)
 
   /**
    * Runs all Sagas in iterable in parallel, and collect
    * the results.
    */
-  def collectAllPar[F[_]: Applicative, A](saga: Saga[F, A], rest: Saga[F, A]*): Saga[F, List[A]] =
+  def collectAllPar[F[+_]: Applicative, A](saga: Saga[F, A], rest: Saga[F, A]*): Saga[F, List[A]] =
     collectAllPar(saga +: rest)
 
   /**
    * Constructs Saga without compensation that fails with an error.
     **/
-  def fail[F[_], A](error: Throwable)(implicit F: MonadError[F, Throwable]): Saga[F, A] =
+  def fail[F[+_], A](error: Throwable)(implicit F: MonadError[F, Throwable]): Saga[F, A] =
     noCompensate(F.raiseError(error))
 
   /**
@@ -216,7 +216,7 @@ object Saga {
    * and returns the results in a new `List[B]`.
    *
    */
-  def foreachPar[F[_], A, B](as: Iterable[A])(fn: A => Saga[F, B])(implicit F: Applicative[F]): Saga[F, List[B]] =
+  def foreachPar[F[+_], A, B](as: Iterable[A])(fn: A => Saga[F, B])(implicit F: Applicative[F]): Saga[F, List[B]] =
     as.foldRight[Saga[F, List[B]]](Saga.noCompensate(F.pure(Nil))) { (a, io) =>
       fn(a).zipWithPar(io)((b, bs) => b :: bs)
     }
@@ -224,13 +224,13 @@ object Saga {
   /**
    * Constructs new `no-op` Saga that will do nothing on error.
    * */
-  def noCompensate[F[_], A](comp: F[A])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+  def noCompensate[F[+_], A](comp: F[A])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
     Step(comp, (_: Either[Throwable, A]) => F.unit)
 
   /**
    * Constructs new Saga from action, compensating action and a scheduling policy for retrying compensation.
    * */
-  def retryableCompensate[F[_], A](request: F[A], compensator: F[Unit], policy: RetryPolicy[F])(
+  def retryableCompensate[F[+_], A](request: F[A], compensator: F[Unit], policy: RetryPolicy[F])(
     implicit F: MonadError[F, Throwable],
     S: Sleep[F]
   ): Saga[F, A] = {
@@ -242,10 +242,10 @@ object Saga {
   /**
    * Constructs Saga without compensation that succeeds with a strict value.
    * */
-  def succeed[F[_], A](value: A): Saga[F, A] =
+  def succeed[F[+_], A](value: A): Saga[F, A] =
     Suceeded(value)
 
-  implicit class Compensable[F[_], A](val request: F[A]) {
+  implicit class Compensable[F[+_], A](val request: F[A]) {
 
     def compensate(compensator: F[Unit]): Saga[F, A] = Saga.compensate(request, compensator)
 
@@ -268,7 +268,7 @@ object Saga {
 
   }
 
-  implicit def monad[F[_]]: Monad[Saga[F, *]] = new Monad[Saga[F, *]] {
+  implicit def monad[F[+_]]: Monad[Saga[F, *]] = new Monad[Saga[F, *]] {
     override def pure[A](x: A): Saga[F, A] = Saga.succeed(x)
 
     override def flatMap[A, B](fa: Saga[F, A])(f: A => Saga[F, B]): Saga[F, B] = fa.flatMap(f)
