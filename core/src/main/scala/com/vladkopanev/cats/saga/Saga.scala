@@ -54,7 +54,7 @@ sealed abstract class Saga[F[+_], +A] {
             interpret(continuation(v)).attempt.flatMap {
               case Right((x, currCompensator)) => F.pure((x, currCompensator *> prevStepCompensator))
               case Left(ex: SagaErr[F])        => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
-              case Left(err) =>
+              case Left(err)                   =>
                 //should not be here
                 F.raiseError(err)
             }
@@ -68,7 +68,7 @@ sealed abstract class Saga[F[+_], +A] {
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
               case Right((b, compB))   => F.pure(f(a, b) -> compensate(compB, compA))
               case Left(e: SagaErr[F]) => F.raiseError(e.copy(compensator = compensate(e.compensator, compA)))
-              case Left(err) =>
+              case Left(err)           =>
                 //should not be here
                 F.raiseError(err)
             }
@@ -149,9 +149,10 @@ sealed abstract class Saga[F[+_], +A] {
 
 object Saga {
 
-  private case class Suceeded[F[+_], A](value: A)                                                      extends Saga[F, A]
-  private case class Step[F[+_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
-  private case class FlatMap[F[+_], A, B](fa: Saga[F, A], f: A => Saga[F, B])                          extends Saga[F, B]
+  private case class Suceeded[F[+_], A](value: A) extends Saga[F, A]
+  private case class Step[F[+_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit])
+      extends Saga[F, A]
+  private case class FlatMap[F[+_], A, B](fa: Saga[F, A], f: A => Saga[F, B]) extends Saga[F, B]
   private case class Par[F[+_], A, B, C](
     fa: Saga[F, A],
     fb: Saga[F, B],
