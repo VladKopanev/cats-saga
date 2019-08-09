@@ -54,6 +54,9 @@ sealed abstract class Saga[F[_], A] {
             interpret(continuation(v)).attempt.flatMap {
               case Right((x, currCompensator)) => F.pure((x, currCompensator *> prevStepCompensator))
               case Left(ex: SagaErr[F])        => F.raiseError(ex.copy(compensator = ex.compensator *> prevStepCompensator))
+              case Left(err) =>
+                //should not be here
+                F.raiseError(err)
             }
         }
       case Par(left: Saga[F, Any], right: Saga[F, Any], combine: ((Any, Any) => X), compensate) =>
@@ -65,6 +68,9 @@ sealed abstract class Saga[F[_], A] {
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
               case Right((b, compB))   => F.pure(f(a, b) -> compensate(compB, compA))
               case Left(e: SagaErr[F]) => F.raiseError(e.copy(compensator = compensate(e.compensator, compA)))
+              case Left(err) =>
+                //should not be here
+                F.raiseError(err)
             }
           case Left(e: SagaErr[F]) =>
             slowerSaga.join.attempt.flatMap[(C, F[Unit])] {
@@ -72,7 +78,13 @@ sealed abstract class Saga[F[_], A] {
               case Left(ea: SagaErr[F]) =>
                 ea.cause.addSuppressed(e.cause)
                 F.raiseError(ea.copy(compensator = compensate(ea.compensator, e.compensator)))
+              case Left(err) =>
+                //should not be here
+                F.raiseError(err)
             }
+          case Left(err) =>
+            //should not be here
+            F.raiseError(err)
         }
 
         val fliped = (b: Any, a: Any) => combine(a, b)
