@@ -1,13 +1,13 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.concurrent.Ref
-import cats.effect.{Concurrent, ContextShift, IO, Timer}
+import cats.effect.{ Concurrent, ContextShift, IO, Timer }
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
-import retry.{RetryPolicies, Sleep}
+import retry.{ RetryPolicies, Sleep }
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
