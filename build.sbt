@@ -78,6 +78,7 @@ lazy val commonSettings = Seq(
 
 lazy val root = project
   .in(file("."))
+  .dependsOn(examples)
   .aggregate(core)
 
 val catsRetryVersion = "0.2.7"
@@ -99,3 +100,34 @@ lazy val core = project
       compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
     )
   )
+
+val http4sVersion   = "0.21.0-M2"
+val log4CatsVersion = "0.4.0-M2"
+val doobieVersion   = "0.8.0-M1"
+val circeVersion    = "0.12.0-M4"
+
+lazy val examples = project
+  .in(file("examples"))
+  .settings(
+    commonSettings,
+    coverageEnabled := false,
+    libraryDependencies ++= Seq(
+      "ch.qos.logback"    % "logback-classic"          % "1.2.3",
+      "com.github.cb372"  %% "cats-retry-cats-effect"  % catsRetryVersion,
+      "io.chrisdavenport" %% "log4cats-core"           % log4CatsVersion,
+      "io.chrisdavenport" %% "log4cats-slf4j"          % log4CatsVersion,
+      "io.chrisdavenport" %% "cats-par"                % "1.0.0-RC1",
+      "io.circe"          %% "circe-generic"           % circeVersion,
+      "io.circe"          %% "circe-parser"            % circeVersion,
+      "org.http4s"        %% "http4s-circe"            % http4sVersion,
+      "org.http4s"        %% "http4s-dsl"              % http4sVersion,
+      "org.http4s"        %% "http4s-blaze-server"     % http4sVersion,
+      "org.tpolecat"      %% "doobie-core"             % doobieVersion,
+      "org.tpolecat"      %% "doobie-hikari"           % doobieVersion,
+      "org.tpolecat"      %% "doobie-postgres"         % doobieVersion,
+      compilerPlugin("org.scalamacros"  % "paradise"            % "2.1.0" cross CrossVersion.full),
+      compilerPlugin("org.typelevel"    %% "kind-projector"     % "0.10.3"),
+      compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.0")
+    )
+  )
+  .dependsOn(core % "compile->compile")
