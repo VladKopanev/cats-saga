@@ -87,7 +87,7 @@ lazy val core = project
   .in(file("core"))
   .settings(
     commonSettings,
-    name := "cats-saga-core",
+    name := "cats-saga",
     coverageEnabled := true,
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(

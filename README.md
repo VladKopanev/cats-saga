@@ -20,6 +20,12 @@ Moreover if you use tagless final encoding this library is a perfect fit.
 Also consider looking at [zio-saga](https://github.com/VladKopanev/zio-saga), it's designed specifically for 
 [ZIO](https://github.com/zio/zio) users. Although you could use this library with `ZIO` as well.
 
+# Getting started
+
+Add zio-saga dependency to your `build.sbt`:
+
+`libraryDependencies += "com.vladkopanev" %% "cats-saga" % "0.2.0"`
+
 # Example of usage:
 
 Consider the following case, we have built our food delivery system in microservices fashion, so
