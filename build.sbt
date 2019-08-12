@@ -50,7 +50,6 @@ lazy val commonSettings = Seq(
     case Some((2, 11)) =>
       Seq(
         "-Yno-adapted-args",
-        "-Ypartial-unification",
         "-Ywarn-inaccessible",
         "-Ywarn-infer-any",
         "-Ywarn-nullary-override",
@@ -68,8 +67,7 @@ lazy val commonSettings = Seq(
         "-Ywarn-nullary-unit",
         "-opt-inline-from:<source>",
         "-opt-warnings",
-        "-opt:l:inline",
-        "-Ypartial-unification"
+        "-opt:l:inline"
       )
     case _ => Nil
   }),
