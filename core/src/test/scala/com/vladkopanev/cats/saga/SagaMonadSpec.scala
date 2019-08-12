@@ -1,7 +1,7 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.{ ContextShift, IO }
-import org.scalatest.{ FlatSpec, FunSpec, FunSuite }
+import org.scalatest.FunSuite
 import cats.implicits._
 import cats.laws.discipline.MonadTests
 import org.scalacheck.{ Arbitrary, Gen }
