@@ -29,7 +29,7 @@ sealed abstract class Saga[F[_], A] {
    * Sequences the result of this Saga to the next Saga.
    * */
   def flatMap[B](f: A => Saga[F, B]): Saga[F, B] =
-    Saga.FlatMap(this, a => f(a))
+    Saga.FlatMap(this, (a: A) => f(a))
 
   /**
    * Flattens the structure of this Saga by executing outer Saga first and then executes inner Saga.
