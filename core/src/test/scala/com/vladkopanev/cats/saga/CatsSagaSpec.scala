@@ -1,13 +1,13 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.concurrent.Ref
-import cats.effect.{ Concurrent, ContextShift, IO, Timer }
+import cats.effect.{Concurrent, ContextShift, Fiber, IO, Timer}
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
-import retry.{ RetryPolicies, Sleep }
+import retry.{RetryPolicies, Sleep}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -326,10 +326,14 @@ class CatsSagaSpec extends FlatSpec {
     def cancelHotelC(actionLog: Ref[IO, Vector[String]]) = sleep(100.millis) *>
       cancelHotel(actionLog.update(_ :+ "hotel canceled"))
 
+    private def awaitCompensation(r: Either[(Unit, Fiber[IO, Unit]), (Fiber[IO, Unit], Unit)]) =
+      r.fold(_._2.join, _._1.join)
+
     val sagaIO = for {
       actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
       _         <- (failFlight compensate cancelFlightC(actionLog)).zipWithParAll(
-        failHotel compensate cancelHotelC(actionLog))((_, _) => ())((a, b) => IO.racePair(a, b).void).transact.orElse(IO.unit)
+        failHotel compensate cancelHotelC(actionLog))((_, _) => ())((a, b) => IO.racePair(a, b).flatMap(awaitCompensation))
+        .transact.orElse(IO.unit)
       log <- actionLog.get
     } yield log
 
