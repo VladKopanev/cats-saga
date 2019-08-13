@@ -86,7 +86,6 @@ lazy val core = project
   .settings(
     commonSettings,
     name := "cats-saga",
-    coverageEnabled := true,
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % "2.0.0-RC1",
