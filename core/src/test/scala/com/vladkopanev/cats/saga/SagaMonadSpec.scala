@@ -5,7 +5,6 @@ import org.scalatest.FunSuite
 import cats.implicits._
 import cats.laws.discipline.MonadTests
 import org.scalacheck.{ Arbitrary, Gen }
-import org.typelevel.discipline.scalatest.Discipline
 import arbitraries._
 import cats.Eq
 
