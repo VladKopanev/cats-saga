@@ -121,6 +121,9 @@ this feature gives you more powerful control over transaction execution.
 
 # Advanced
 
+Advanced example of working application that stores saga state in DB (journaling) could be found 
+here [examples](/examples).
+
 ### Retrying
 `cats-saga` provides you with functions for retrying your compensating actions, so you could write:
 
