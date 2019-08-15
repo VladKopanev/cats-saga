@@ -134,17 +134,18 @@ sealed abstract class Saga[F[_], A] {
     )(res: Either[Throwable, A1]): F[Unit] =
       race.modify(c => (c + 1) -> (if (c > 0) F.unit else f(res, loser).attempt >>= done.complete)).flatten
 
+    import cats.effect.syntax.bracket._
+    import cats.effect.syntax.concurrent._
     for {
       done <- Deferred[F, Either[Throwable, C]]
       race <- Ref.of[F, Int](0)
-      c <- for {
-            left  <- F.start(fA)
-            right <- F.start(fB)
-            _     <- F.start(left.join.attempt.flatMap(arbiter(leftDone, right, race, done)))
-            _     <- F.start(right.join.attempt.flatMap(arbiter(rightDone, left, race, done)))
-            res   <- done.get
-            c     <- res.fold[F[C]](F.raiseError, F.pure)
-          } yield c
+      child <- Ref.of[F, F[Unit]](F.unit)
+      c <- ((for {
+            left  <- fA.start.flatTap(f => child.update(_ *> f.cancel))
+            right <- fB.start.flatTap(f => child.update(_ *> f.cancel))
+            _     <- left.join.attempt.flatMap(arbiter(leftDone, right, race, done)).start
+            _     <- right.join.attempt.flatMap(arbiter(rightDone, left, race, done)).start
+          } yield ()).uncancelable *> done.get.flatMap(_.fold[F[C]](F.raiseError, F.pure))).onCancel(child.get.flatten)
     } yield c
   }
 }

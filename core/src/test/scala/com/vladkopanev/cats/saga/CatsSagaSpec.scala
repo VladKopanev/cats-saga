@@ -27,7 +27,6 @@ class CatsSagaSpec extends FlatSpec {
   }
 
   "Saga#zipWithPar" should "successfully run two Sagas in parallel" in new TestRuntime {
-
     val saga = (sleep(1000.millis) *> bookFlight compensate cancelFlight)
       .zipWithPar(sleep(1000.millis) *> bookHotel compensate cancelHotel)((_, _) => ())
 
