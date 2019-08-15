@@ -92,7 +92,9 @@ sealed abstract class Saga[F[_], A] {
         race(interpret(left), interpret(right))(coordinate(combine), coordinate(fliped))
     }
 
-    interpret(this).map(_._1).handleErrorWith { case e: SagaErr[F] => e.compensator *> F.raiseError(e.cause) }
+    interpret(this).map(_._1).handleErrorWith {
+      case e: SagaErr[F] => e.compensator.orElse(F.unit) *> F.raiseError(e.cause)
+    }
   }
 
   /**

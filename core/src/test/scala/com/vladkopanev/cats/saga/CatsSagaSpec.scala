@@ -342,6 +342,34 @@ class CatsSagaSpec extends FlatSpec {
     actionLog should contain theSameElementsAs Vector("flight canceled", "hotel canceled")
   }
 
+  "Saga#transact" should "return original error in case compensator also fails" in new TestRuntime {
+    val expectedError = FlightBookingError()
+    val failFlight: IO[Any] = sleep(1000.millis) *> IO.raiseError(expectedError)
+
+    val failCompensator = cancelFlight *> IO.raiseError(new RuntimeException())
+
+    val saga = (failFlight compensate failCompensator).transact.handleErrorWith(e => IO.pure(e))
+
+    val actualError = saga.unsafeRunSync()
+    actualError shouldBe expectedError
+  }
+
+  "Saga#transact" should "return original error in case compensator also fails 2" in new TestRuntime {
+    val expectedError = FlightBookingError()
+    val failFlight: IO[Any] = sleep(1000.millis) *> IO.raiseError(expectedError)
+
+    val failCompensator = cancelFlight *> IO.raiseError(new RuntimeException())
+
+    val saga = (for {
+      _ <- bookHotel compensate cancelHotel
+      _ <- failFlight compensate failCompensator
+      _ <- bookCar compensate cancelCar
+    } yield ()).transact.handleErrorWith(e => IO.pure(e))
+
+    val actualError = saga.unsafeRunSync()
+    actualError shouldBe expectedError
+  }
+
 }
 
 trait TestRuntime {
