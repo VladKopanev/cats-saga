@@ -23,8 +23,6 @@ object SagaApp extends IOApp {
 
     val randomUtil = new FUtil[IO]
 
-    import cats.temp.par._
-
     (for {
       paymentService <- PaymentServiceClientStub(randomUtil, clientMaxReqTimeout, flakyClient)
       loyaltyPoints  <- LoyaltyPointsServiceClientStub(randomUtil, clientMaxReqTimeout, flakyClient)

@@ -79,7 +79,9 @@ lazy val root = project
   .dependsOn(examples)
   .aggregate(core)
 
+val catsVersion = "2.0.0"
 val catsRetryVersion = "0.2.7"
+val scalaTestVersion = "3.0.8"
 
 lazy val core = project
   .in(file("core"))
@@ -88,9 +90,9 @@ lazy val core = project
     name := "cats-saga",
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
-      "org.typelevel"              %% "cats-effect"               % "2.0.0-RC1",
-      "org.typelevel"              %% "cats-laws"                 % "2.0.0"      % Test,
-      "org.scalatest"              %% "scalatest"                 % "3.0.8"          % Test,
+      "org.typelevel"              %% "cats-effect"               % catsVersion,
+      "org.typelevel"              %% "cats-laws"                 % catsVersion      % Test,
+      "org.scalatest"              %% "scalatest"                 % scalaTestVersion % Test,
       "com.github.cb372"           %% "cats-retry-core"           % catsRetryVersion % Optional,
       "com.github.cb372"           %% "cats-retry-cats-effect"    % catsRetryVersion % Optional,
       compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
@@ -112,7 +114,6 @@ lazy val examples = project
       "com.github.cb372"  %% "cats-retry-cats-effect"  % catsRetryVersion,
       "io.chrisdavenport" %% "log4cats-core"           % log4CatsVersion,
       "io.chrisdavenport" %% "log4cats-slf4j"          % log4CatsVersion,
-      "io.chrisdavenport" %% "cats-par"                % "1.0.0-RC1",
       "io.circe"          %% "circe-generic"           % circeVersion,
       "io.circe"          %% "circe-parser"            % circeVersion,
       "org.http4s"        %% "http4s-circe"            % http4sVersion,

@@ -3,10 +3,9 @@ package com.vladkopanev.cats.saga.example
 import java.util.UUID
 
 import cats.Parallel
-import cats.effect.{Concurrent, IO, Sync, Timer}
+import cats.effect.{Concurrent, Sync, Timer}
 import cats.syntax.all._
-import cats.temp.par.Par
-import com.vladkopanev.cats.saga.example.client.{FUtil, LoyaltyPointsServiceClient, OrderServiceClient, PaymentServiceClient}
+import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClient, OrderServiceClient, PaymentServiceClient}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDao
 import com.vladkopanev.cats.saga.example.model.{OrderSagaData, OrderSagaError, SagaStep}
 import io.chrisdavenport.log4cats.StructuredLogger
@@ -28,7 +27,7 @@ class OrderSagaCoordinatorImpl[F[_]](
   sagaLogDao: SagaLogDao[F],
   maxRequestTimeout: Int,
   logger: StructuredLogger[F]
-)(implicit M: Concurrent[F], P: Par[F], T: Timer[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
+)(implicit M: Concurrent[F], P: Parallel[F], T: Timer[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
 
   import com.vladkopanev.cats.saga.Saga._
 
@@ -134,7 +133,6 @@ class OrderSagaCoordinatorImpl[F[_]](
 
   override def recoverSagas: F[Unit] = {
     import cats.instances.all._
-    import cats.temp.par._
     for {
       _     <- logger.info("Sagas recovery stared")
       sagas <- sagaLogDao.listUnfinishedSagas
@@ -159,13 +157,13 @@ class OrderSagaCoordinatorImpl[F[_]](
 
 object OrderSagaCoordinatorImpl {
 
-  def apply[F[_]: Sync: Concurrent: Timer: Sleep](
+  def apply[F[_]: Sync: Concurrent: Timer: Sleep: Parallel](
     paymentServiceClient: PaymentServiceClient[F],
     loyaltyPointsServiceClient: LoyaltyPointsServiceClient[F],
     orderServiceClient: OrderServiceClient[F],
     sagaLogDao: SagaLogDao[F],
     maxRequestTimeout: Int
-  )(implicit P: Par[F]): F[OrderSagaCoordinatorImpl[F]] =
+  ): F[OrderSagaCoordinatorImpl[F]] =
     Slf4jLogger
       .create[F]
       .map(
