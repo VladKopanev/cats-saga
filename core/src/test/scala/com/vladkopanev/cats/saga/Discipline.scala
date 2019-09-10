@@ -5,7 +5,7 @@ import org.scalatest.prop.Checkers
 import org.typelevel.discipline.Laws
 
 /*
-* Ported from org.typelevel.discipline: 0.8 which was a dependency of cats-laws:1.1.0 but being removed from cats-laws 2.0.0-RC2
+* Ported from org.typelevel.discipline: 0.8 which was a dependency of cats-laws:1.1.0 but being removed from cats-laws 2.0.0
 * to force library release for scala 2.13 without waiting for scalatest to publish their 2.13 artifacts
 *  */
 trait Discipline extends Checkers { self: FunSuiteLike =>
