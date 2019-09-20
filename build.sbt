@@ -80,7 +80,7 @@ lazy val root = project
   .aggregate(core)
 
 val catsVersion = "2.0.0"
-val catsRetryVersion = "0.2.7"
+val catsRetryVersion = "0.3.0"
 val scalaTestVersion = "3.0.8"
 
 lazy val core = project
