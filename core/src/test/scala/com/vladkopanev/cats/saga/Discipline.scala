@@ -1,8 +1,7 @@
 package com.vladkopanev.cats.saga
 
-import org.scalatest.FunSuiteLike
-import org.scalatest.prop.Checkers
 import org.typelevel.discipline.Laws
+import org.scalatestplus.scalacheck.Checkers
 
 /*
 * Ported from org.typelevel.discipline: 0.8 which was a dependency of cats-laws:1.1.0 but being removed from cats-laws 2.0.0
