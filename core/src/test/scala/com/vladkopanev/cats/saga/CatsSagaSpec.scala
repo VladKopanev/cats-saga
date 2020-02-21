@@ -5,14 +5,15 @@ import cats.effect.{ Concurrent, ContextShift, Fiber, IO, Timer }
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers._
+import matchers.should.Matchers._
 import retry.{ RetryPolicies, Sleep }
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
+import org.scalatest.matchers
+import org.scalatest.flatspec.AnyFlatSpec
 
-class CatsSagaSpec extends FlatSpec {
+class CatsSagaSpec extends AnyFlatSpec {
 
   import scala.concurrent.duration._
 

@@ -1,7 +1,6 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.{ ContextShift, IO }
-import org.scalatest.FunSuite
 import cats.implicits._
 import cats.laws.discipline.MonadTests
 import org.scalacheck.{ Arbitrary, Gen }
@@ -9,8 +8,9 @@ import arbitraries._
 import cats.Eq
 
 import scala.concurrent.ExecutionContext
+import org.scalatest.funsuite.AnyFunSuite
 
-class SagaMonadSpec extends FunSuite with Discipline {
+class SagaMonadSpec extends AnyFunSuite with Discipline {
 
   checkAll("Saga.MonadLaws", MonadTests[Saga[IO, *]].monad[Int, Int, String])
 
