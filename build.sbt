@@ -81,7 +81,7 @@ lazy val root = project
 
 val catsVersion = "2.0.0"
 val catsRetryVersion = "0.3.2"
-val scalaTestVersion = "3.0.8"
+val scalaTestVersion = "3.1.2"
 
 lazy val core = project
   .in(file("core"))
