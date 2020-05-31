@@ -3,8 +3,8 @@ import sbt.file
 
 name := "cats-saga"
 
-val mainScala = "2.12.9"
-val allScala  = Seq("2.11.12", mainScala, "2.13.0")
+val mainScala = "2.12.10"
+val allScala  = Seq("2.11.12", mainScala, "2.13.2")
 
 inThisBuild(
   List(
@@ -80,7 +80,7 @@ lazy val root = project
   .aggregate(core)
 
 val catsVersion = "2.0.0"
-val catsRetryVersion = "1.0.0"
+val catsRetryVersion = "1.1.0"
 val scalaTestVersion = "3.1.2"
 val kindProjectorVersion = "0.11.0"
 
@@ -94,9 +94,8 @@ lazy val core = project
       "org.typelevel"              %% "cats-effect"               % catsVersion,
       "org.typelevel"              %% "cats-laws"                 % catsVersion      % Test,
       "org.scalatest"              %% "scalatest"                 % scalaTestVersion % Test,
-      "com.github.cb372"           %% "cats-retry-core"           % catsRetryVersion % Optional,
-      "com.github.cb372"           %% "cats-retry-cats-effect"    % catsRetryVersion % Optional,
-      compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
+      "com.github.cb372"           %% "cats-retry"                % catsRetryVersion % Optional,
+      compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
     )
   )
 
@@ -112,7 +111,6 @@ lazy val examples = project
     coverageEnabled := false,
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic"          % "1.2.3",
-      "com.github.cb372"  %% "cats-retry-cats-effect"  % catsRetryVersion,
       "io.chrisdavenport" %% "log4cats-core"           % log4CatsVersion,
       "io.chrisdavenport" %% "log4cats-slf4j"          % log4CatsVersion,
       "io.circe"          %% "circe-generic"           % circeVersion,
@@ -124,7 +122,7 @@ lazy val examples = project
       "org.tpolecat"      %% "doobie-hikari"           % doobieVersion,
       "org.tpolecat"      %% "doobie-postgres"         % doobieVersion,
       compilerPlugin("org.scalamacros"  % "paradise"            % "2.1.0" cross CrossVersion.full),
-      compilerPlugin("org.typelevel"    %% "kind-projector"     % kindProjectorVersion),
+      compilerPlugin("org.typelevel"    %% "kind-projector"     % kindProjectorVersion cross CrossVersion.full),
       compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.1")
     )
   )
