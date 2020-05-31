@@ -30,6 +30,7 @@ class SagaLogDaoImpl[F[_]](xa: Transactor[F])(implicit B: Bracket[F, Throwable])
   import doobie._
   import doobie.implicits._
   import doobie.postgres.implicits._
+  import doobie.implicits.legacy.instant._
 
   implicit val han = LogHandler.jdkLogHandler
 
