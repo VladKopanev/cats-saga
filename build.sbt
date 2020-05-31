@@ -83,6 +83,7 @@ val catsVersion = "2.0.0"
 val catsRetryVersion = "1.1.0"
 val scalaTestVersion = "3.1.2"
 val kindProjectorVersion = "0.11.0"
+val disciplineVersion = "1.0.0"
 
 lazy val core = project
   .in(file("core"))
@@ -92,9 +93,11 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % catsVersion,
-      "org.typelevel"              %% "cats-laws"                 % catsVersion      % Test,
-      "org.scalatest"              %% "scalatest"                 % scalaTestVersion % Test,
-      "com.github.cb372"           %% "cats-retry"                % catsRetryVersion % Optional,
+      "org.typelevel"              %% "cats-laws"                 % catsVersion       % Test,
+      "org.scalatest"              %% "scalatest"                 % scalaTestVersion  % Test,
+      "org.typelevel"              %% "discipline-core"           % disciplineVersion % Test,
+      "org.typelevel"              %% "discipline-scalatest"      % disciplineVersion % Test,
+      "com.github.cb372"           %% "cats-retry"                % catsRetryVersion  % Optional,
       compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
     )
   )
