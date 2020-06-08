@@ -1,18 +1,18 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.concurrent.Ref
-import cats.effect.{ Concurrent, ContextShift, Fiber, IO, Timer }
+import cats.effect.{Concurrent, ContextShift, Fiber, IO, Timer}
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers._
-import retry.{ RetryPolicies, Sleep }
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import retry.RetryPolicies
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
-class CatsSagaSpec extends FlatSpec {
+class CatsSagaSpec extends AnyFlatSpec with Matchers {
 
   import scala.concurrent.duration._
 
@@ -374,10 +374,8 @@ class CatsSagaSpec extends FlatSpec {
 trait TestRuntime {
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  import retry.CatsEffect._
-  implicit val sleepF: Sleep[IO] = sleepUsingTimer
 
-  def sleep(d: FiniteDuration) = IO.sleep(d)
+  def sleep(d: FiniteDuration): IO[Unit] = IO.sleep(d)
 }
 
 

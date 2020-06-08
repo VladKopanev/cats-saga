@@ -3,8 +3,8 @@ import sbt.file
 
 name := "cats-saga"
 
-val mainScala = "2.12.9"
-val allScala  = Seq("2.11.12", mainScala, "2.13.0")
+val mainScala = "2.12.10"
+val allScala  = Seq("2.11.12", mainScala, "2.13.2")
 
 inThisBuild(
   List(
@@ -80,8 +80,10 @@ lazy val root = project
   .aggregate(core)
 
 val catsVersion = "2.0.0"
-val catsRetryVersion = "0.3.2"
-val scalaTestVersion = "3.0.8"
+val catsRetryVersion = "1.1.0"
+val scalaTestVersion = "3.1.2"
+val kindProjectorVersion = "0.11.0"
+val disciplineVersion = "1.0.0"
 
 lazy val core = project
   .in(file("core"))
@@ -91,18 +93,19 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % catsVersion,
-      "org.typelevel"              %% "cats-laws"                 % catsVersion      % Test,
-      "org.scalatest"              %% "scalatest"                 % scalaTestVersion % Test,
-      "com.github.cb372"           %% "cats-retry-core"           % catsRetryVersion % Optional,
-      "com.github.cb372"           %% "cats-retry-cats-effect"    % catsRetryVersion % Optional,
-      compilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+      "org.typelevel"              %% "cats-laws"                 % catsVersion       % Test,
+      "org.scalatest"              %% "scalatest"                 % scalaTestVersion  % Test,
+      "org.typelevel"              %% "discipline-core"           % disciplineVersion % Test,
+      "org.typelevel"              %% "discipline-scalatest"      % disciplineVersion % Test,
+      "com.github.cb372"           %% "cats-retry"                % catsRetryVersion  % Optional,
+      compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
     )
   )
 
-val http4sVersion   = "0.21.0-M2"
-val log4CatsVersion = "0.4.0-M2"
-val doobieVersion   = "0.8.0-M1"
-val circeVersion    = "0.12.0-M4"
+val http4sVersion   = "0.21.4"
+val log4CatsVersion = "1.1.1"
+val doobieVersion   = "0.9.0"
+val circeVersion    = "0.13.0"
 
 lazy val examples = project
   .in(file("examples"))
@@ -111,7 +114,7 @@ lazy val examples = project
     coverageEnabled := false,
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic"          % "1.2.3",
-      "com.github.cb372"  %% "cats-retry-cats-effect"  % catsRetryVersion,
+      "com.github.cb372"  %% "cats-retry"              % catsRetryVersion,
       "io.chrisdavenport" %% "log4cats-core"           % log4CatsVersion,
       "io.chrisdavenport" %% "log4cats-slf4j"          % log4CatsVersion,
       "io.circe"          %% "circe-generic"           % circeVersion,
@@ -123,8 +126,8 @@ lazy val examples = project
       "org.tpolecat"      %% "doobie-hikari"           % doobieVersion,
       "org.tpolecat"      %% "doobie-postgres"         % doobieVersion,
       compilerPlugin("org.scalamacros"  % "paradise"            % "2.1.0" cross CrossVersion.full),
-      compilerPlugin("org.typelevel"    %% "kind-projector"     % "0.10.3"),
-      compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.0")
+      compilerPlugin("org.typelevel"    %% "kind-projector"     % kindProjectorVersion cross CrossVersion.full),
+      compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.1")
     )
   )
   .dependsOn(core % "compile->compile")

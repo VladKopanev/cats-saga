@@ -1,7 +1,6 @@
 package com.vladkopanev.cats.saga.example.client
 
-import cats.{ApplicativeError, Monad}
-import cats.effect.{Async, Concurrent, ContextShift, Sync, Timer}
+import cats.effect.{Concurrent, ContextShift, Sync, Timer}
 import cats.syntax.all._
 
 import scala.util.Random

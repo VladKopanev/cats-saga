@@ -1,16 +1,18 @@
 package com.vladkopanev.cats.saga
 
-import cats.effect.{ ContextShift, IO }
-import org.scalatest.FunSuite
+import cats.Eq
+import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import cats.laws.discipline.MonadTests
-import org.scalacheck.{ Arbitrary, Gen }
-import arbitraries._
-import cats.Eq
+import com.vladkopanev.cats.saga.arbitraries._
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.funspec.AnyFunSpecLike
+import org.scalatest.prop.Configuration
+import org.typelevel.discipline.scalatest.FunSpecDiscipline
 
 import scala.concurrent.ExecutionContext
 
-class SagaMonadSpec extends FunSuite with Discipline {
+class SagaMonadSpec extends FunSpecDiscipline with AnyFunSpecLike with Configuration {
 
   checkAll("Saga.MonadLaws", MonadTests[Saga[IO, *]].monad[Int, Int, String])
 

@@ -14,7 +14,6 @@ import doobie.util.transactor.Transactor
 object SagaApp extends IOApp {
 
   import org.http4s.server.blaze._
-  import retry.CatsEffect._
 
   override def run(args: List[String]): IO[ExitCode] = {
     val flakyClient         = sys.env.getOrElse("FLAKY_CLIENT", "false").toBoolean
