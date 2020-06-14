@@ -94,6 +94,7 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % catsVersion,
       "org.typelevel"              %% "cats-laws"                 % catsVersion       % Test,
+      "org.typelevel"              %% "cats-effect-laws"          % catsVersion       % Test,
       "org.scalatest"              %% "scalatest"                 % scalaTestVersion  % Test,
       "org.typelevel"              %% "discipline-core"           % disciplineVersion % Test,
       "org.typelevel"              %% "discipline-scalatest"      % disciplineVersion % Test,

@@ -1,10 +1,12 @@
 package com.vladkopanev.cats.saga
 
-import cats._
-import cats.effect.concurrent.{ Deferred, Ref }
-import cats.effect.{ Concurrent, Fiber }
+import cats.arrow.FunctionK
+import cats.{Parallel, _}
+import cats.effect.concurrent.{Deferred, Ref}
+import cats.effect.internals.IONewtype
+import cats.effect.{Concurrent, Fiber}
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{ FlatMap, Par, SagaErr, Step, Suceeded }
+import com.vladkopanev.cats.saga.Saga.{CompensateFailed, CompensateSucceeded, Failed, FlatMap, Noop, Par, SagaErr, Step, Suceeded}
 import retry._
 
 /**
@@ -43,10 +45,25 @@ sealed abstract class Saga[F[_], A] {
   def transact(implicit F: MonadError[F, Throwable]): F[A] = {
     def interpret[X](saga: Saga[F, X]): F[(X, F[Unit])] = saga match {
       case Suceeded(value) => F.pure((value, F.unit))
+      case Failed(err) => F.raiseError(SagaErr(err, F.unit))
+      case Noop(computation) => computation.attempt.flatMap {
+        case Right(x)     => F.pure((x, F.unit))
+        case Left(ex) => F.raiseError(SagaErr(ex, F.unit))
+      }
       case s: Step[F, X, Throwable] =>
         s.action.attempt.flatMap {
-          case Right(x)     => (x, s.compensate(Right(x))).pure[F]
+          case r @ Right(x)     => F.pure((x, s.compensate(r)))
           case e @ Left(ex) => F.raiseError(SagaErr(ex, s.compensate(e)))
+        }
+      case s: CompensateFailed[F, X, Throwable] =>
+        s.action.attempt.flatMap {
+          case Right(x) => F.pure((x, F.unit))
+          case Left(ex) => F.raiseError(SagaErr(ex, s.compensate(ex)))
+        }
+      case s: CompensateSucceeded[F, X] =>
+        s.action.attempt.flatMap {
+          case Right(x) => F.pure((x, s.compensate(x)))
+          case Left(ex) => F.raiseError(SagaErr(ex, F.unit))
         }
       case FlatMap(chained: Saga[F, Any], continuation: (Any => Saga[F, X])) =>
         interpret(chained).flatMap {
@@ -156,8 +173,13 @@ sealed abstract class Saga[F[_], A] {
 object Saga {
 
   private case class Suceeded[F[_], A](value: A) extends Saga[F, A]
+  private case class Failed[F[_], A](value: Throwable) extends Saga[F, A]
+  private case class Noop[F[_], A](action: F[A]) extends Saga[F, A]
   private case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit])
       extends Saga[F, A]
+  private case class CompensateFailed[F[_], A, E <: Throwable](action: F[A], compensate: E => F[Unit])
+    extends Saga[F, A]
+  private case class CompensateSucceeded[F[_], A](action: F[A], compensate: A => F[Unit]) extends Saga[F, A]
   private case class FlatMap[F[_], A, B](fa: Saga[F, A], f: A => Saga[F, B]) extends Saga[F, B]
   private case class Par[F[_], A, B, C](
     fa: Saga[F, A],
@@ -185,19 +207,15 @@ object Saga {
    * Constructs new Saga from action and compensation function that will be applied only to failed result of this request.
    * If given action succeeds associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit])(
-    implicit F: InvariantMonoidal[F]
-  ): Saga[F, A] =
-    compensate[F, E, A](request, (result: Either[E, A]) => result.fold(compensation, _ => F.unit))
+  def compensateIfFail[F[_], E <: Throwable, A](request: F[A], compensation: E => F[Unit]): Saga[F, A] =
+    CompensateFailed(request, compensation)
 
   /**
    * Constructs new Saga from action and compensation function that will be applied only to successful result of this request.
    * If given action fails associated compensating action would not be executed during the compensation phase.
    * */
-  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit])(
-    implicit F: InvariantMonoidal[F]
-  ): Saga[F, A] =
-    compensate(request, (result: Either[Throwable, A]) => result.fold(_ => F.unit, compensation))
+  def compensateIfSuccess[F[_], A](request: F[A], compensation: A => F[Unit]): Saga[F, A] =
+    CompensateSucceeded(request, compensation)
 
   /**
    * Runs all Sagas in iterable in parallel and collects
@@ -216,8 +234,8 @@ object Saga {
   /**
    * Constructs Saga without compensation that fails with an error.
     **/
-  def fail[F[_], A](error: Throwable)(implicit F: MonadError[F, Throwable]): Saga[F, A] =
-    noCompensate(F.raiseError(error))
+  def fail[F[_], A](error: Throwable): Saga[F, A] =
+    Failed(error)
 
   /**
    * Constructs a Saga that applies the function `f` to each element of the `Iterable[A]` in parallel,
@@ -232,8 +250,8 @@ object Saga {
   /**
    * Constructs new `no-op` Saga that will do nothing on error.
    * */
-  def noCompensate[F[_], A](comp: F[A])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
-    Step(comp, (_: Either[Throwable, A]) => F.unit)
+  def noCompensate[F[_], A](comp: F[A]): Saga[F, A] =
+    Noop(comp)
 
   /**
    * Constructs new Saga from action, compensating action and a scheduling policy for retrying compensation.
@@ -285,5 +303,41 @@ object Saga {
       case Left(aa) => tailRecM(aa)(f)
       case Right(b) => pure(b)
     }
+  }
+
+  type ParF[F[_], +A] = ParF.Type[F, A]
+
+  object ParF {
+    type Base
+    trait Tag extends Any
+    type Type[F[_], +A] <: Base with Tag
+
+    def apply[F[_], A](fa: Saga[F, A]): Type[F, A] =
+      fa.asInstanceOf[Type[F, A]]
+
+    def unwrap[F[_], A](fa: Type[F, A]): Saga[F, A] =
+      fa.asInstanceOf[Saga[F, A]]
+  }
+
+  implicit def applicative[M[_]: Concurrent]: Applicative[ParF[M, *]] = new Applicative[ParF[M, *]] {
+    import ParF.{unwrap, apply => par}
+
+    override def pure[A](x: A): ParF[M, A] = par(Saga.succeed(x))
+
+    override def ap[A, B](ff: ParF[M, A => B])(fa: ParF[M, A]): ParF[M, B] =
+      par(unwrap(ff).zipWithPar(unwrap(fa)) { (fab, b) => fab(b) })
+  }
+
+  implicit def parallel[M[_]: Concurrent]: Parallel.Aux[Saga[M, *], ParF[M, *]] = new Parallel[Saga[M, *]] {
+
+    override type F[x] = ParF[M, x]
+
+    final override val applicative: Applicative[ParF[M, *]] = Saga.applicative[M]
+
+    final override val monad: Monad[Saga[M, *]] = Saga.monad[M]
+
+    override val sequential: F ~> Saga[M, *] = λ[F ~> Saga[M, *]](ParF.unwrap(_))
+
+    override val parallel: Saga[M, *] ~> F = λ[Saga[M, *] ~> F](ParF(_))
   }
 }
