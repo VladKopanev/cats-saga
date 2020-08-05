@@ -13,7 +13,7 @@ import org.typelevel.discipline.scalatest.FunSpecDiscipline
 
 import scala.concurrent.ExecutionContext
 
-class SagaMonadSpec extends FunSpecDiscipline with AnyFunSpecLike with Configuration {
+class SagaLawsSpec extends FunSpecDiscipline with AnyFunSpecLike with Configuration {
   import arbitraries._
   checkAll("Saga.MonadLaws", MonadTests[Saga[IO, *]].monad[Int, Int, String])
   checkAll("Saga.ApplicativeLaws", ApplicativeTests[Saga[IO, *]].applicative[Int, Int, String])
@@ -38,7 +38,6 @@ object arbitraries {
       1 -> genNoCompensate[A],
       1 -> genFlatMap[A],
       1 -> genFail[A],
-      2 -> genFlatMap[A],
       1 -> genMapOne[A],
       1 -> genMapTwo[A]
     )
@@ -79,7 +78,10 @@ object arbitraries {
     } yield action.compensate(compensation)
 
   implicit def eqSaga[A]: Eq[Saga[IO, A]] =
-    Eq.instance { case (x, y) => x.transact.unsafeRunSync() == y.transact.unsafeRunSync() }
+    Eq.instance {
+      case (x, y) =>
+        x.transact.attempt.unsafeRunSync() == x.transact.attempt.unsafeRunSync()
+    }
 
   implicit def eqParSaga[A]: Eq[Saga.ParF[IO, A]] =
     Eq.instance { case (x, y) => eqSaga[A].eqv(ParF.unwrap(x), ParF.unwrap(y)) }

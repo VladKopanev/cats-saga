@@ -1,12 +1,20 @@
 package com.vladkopanev.cats.saga
 
-import cats.arrow.FunctionK
 import cats.{Parallel, _}
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.internals.IONewtype
 import cats.effect.{Concurrent, Fiber}
 import cats.implicits._
-import com.vladkopanev.cats.saga.Saga.{CompensateFailed, CompensateSucceeded, Failed, FlatMap, Noop, Par, SagaErr, Step, Suceeded}
+import com.vladkopanev.cats.saga.Saga.{
+  CompensateFailed,
+  CompensateSucceeded,
+  Failed,
+  FlatMap,
+  Noop,
+  Par,
+  SagaErr,
+  Step,
+  Suceeded
+}
 import retry._
 
 /**
