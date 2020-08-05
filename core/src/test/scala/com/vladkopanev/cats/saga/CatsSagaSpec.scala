@@ -185,7 +185,7 @@ class CatsSagaSpec extends AnyFlatSpec with Matchers {
     val sagaIO = for {
       actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
       _ <- (for {
-        i <- Saga.fail[IO, Int](FlightBookingError())(implicitly[Concurrent[IO]])
+        i <- Saga.fail[IO, Int](FlightBookingError())
         _ <- failFlightBooking compensate cancelFlight(actionLog.update(_ :+ s"flight canceled $i"))
       } yield ()).transact.orElse(IO.unit)
       log <- actionLog.get
