@@ -24,7 +24,7 @@ Also consider looking at [zio-saga](https://github.com/VladKopanev/zio-saga), it
 
 Add zio-saga dependency to your `build.sbt`:
 
-`libraryDependencies += "com.vladkopanev" %% "cats-saga" % "0.2.3"`
+`libraryDependencies += "com.vladkopanev" %% "cats-saga" % "0.3.0"`
 
 # Example of usage:
 
