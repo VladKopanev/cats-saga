@@ -84,7 +84,7 @@ val catsRetryVersion = "1.1.1"
 val scalaTestVersion = "3.2.3"
 val kindProjectorVersion = "0.11.2"
 val disciplineCoreVersion = "1.1.2"
-val disciplineScalatestVersion = "2.1.0"
+val disciplineScalatestVersion = "2.1.1"
 
 lazy val core = project
   .in(file("core"))
