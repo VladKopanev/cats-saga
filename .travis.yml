@@ -6,7 +6,7 @@ matrix:
   include:
     # Scala 2.11, JVM
     - jdk: openjdk8
-      scala: 2.11.12
+      scala: 2.13.5
     # Scala 2.12, JVM
     - jdk: openjdk8
       scala: 2.12.8
