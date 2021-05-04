@@ -76,7 +76,6 @@ lazy val commonSettings = Seq(
 
 lazy val root = project
   .in(file("."))
-  .dependsOn(examples)
   .aggregate(core)
 
 val catsVersion = "2.1.0"
@@ -127,7 +126,6 @@ lazy val examples = project
       "org.tpolecat"      %% "doobie-core"             % doobieVersion,
       "org.tpolecat"      %% "doobie-hikari"           % doobieVersion,
       "org.tpolecat"      %% "doobie-postgres"         % doobieVersion,
-      compilerPlugin("org.scalamacros"  % "paradise"            % "2.1.0" cross CrossVersion.full),
       compilerPlugin("org.typelevel"    %% "kind-projector"     % kindProjectorVersion cross CrossVersion.full),
       compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.1")
     )
