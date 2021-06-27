@@ -1,17 +1,17 @@
 package com.vladkopanev.cats.saga.example
 
-import java.util.UUID
-
-import cats.Parallel
-import cats.effect.{Concurrent, Sync, Timer}
+import cats.effect.Temporal
+import cats.effect.kernel.Async
 import cats.syntax.all._
+import cats.{Applicative, Parallel}
 import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClient, OrderServiceClient, PaymentServiceClient}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDao
 import com.vladkopanev.cats.saga.example.model.{OrderSagaData, OrderSagaError, SagaStep}
 import io.chrisdavenport.log4cats.StructuredLogger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.chrisdavenport.log4cats.noop.NoOpLogger
 import retry.{RetryPolicies, Sleep}
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 trait OrderSagaCoordinator[F[_]] {
@@ -27,7 +27,7 @@ class OrderSagaCoordinatorImpl[F[_]](
   sagaLogDao: SagaLogDao[F],
   maxRequestTimeout: Int,
   logger: StructuredLogger[F]
-)(implicit M: Concurrent[F], P: Parallel[F], T: Timer[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
+)(implicit A: Async[F], P: Parallel[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
 
   import com.vladkopanev.cats.saga.Saga._
 
@@ -52,8 +52,8 @@ class OrderSagaCoordinatorImpl[F[_]](
         .map(new OrderSagaError(_))
         .pure[F]
 
-        maybeError.flatMap(_.fold(M.unit)(M.raiseError)) *>
-          Concurrent.timeout(request, maxRequestTimeout.seconds)
+        maybeError.flatMap(_.fold(A.unit)(A.raiseError)) *>
+          Temporal[F].timeout(request, maxRequestTimeout.seconds)
           .attempt
           .flatMap {
             case Left(e) => sagaLogDao.createSagaStep(stepName, sagaId, result = None, failure = Some(e.getMessage))
@@ -119,11 +119,11 @@ class OrderSagaCoordinatorImpl[F[_]](
 
     for {
       _        <- mdcLog.info("Saga execution started")
-      sagaId   <- sagaIdOpt.fold(sagaLogDao.startSaga(userId, data))(M.pure)
+      sagaId   <- sagaIdOpt.fold(sagaLogDao.startSaga(userId, data))(A.pure)
       executed <- sagaLogDao.listExecutedSteps(sagaId)
       _ <- buildSaga(sagaId, executed).transact.attempt.flatMap {
             case Left(_: OrderSagaError) => sagaLogDao.finishSaga(sagaId)
-            case Left(_)                 => M.unit
+            case Left(_)                 => A.unit
             case Right(_)                => sagaLogDao.finishSaga(sagaId)
           }
       _ <- mdcLog.info("Saga execution finished")
@@ -138,10 +138,10 @@ class OrderSagaCoordinatorImpl[F[_]](
       sagas <- sagaLogDao.listUnfinishedSagas
       _     <- logger.info(s"Found unfinished sagas: $sagas")
       _ <- sagas.parTraverse { sagaInfo =>
-            M.fromEither(sagaInfo.data.as[OrderSagaData]).flatMap {
+            A.fromEither(sagaInfo.data.as[OrderSagaData]).flatMap {
               case OrderSagaData(userId, orderId, money, bonuses) =>
                 runSaga(userId, orderId, money, bonuses, Some(sagaInfo.id)).recover {
-                  case e: OrderSagaError => M.unit
+                  case e: OrderSagaError => A.unit
                 }
             }
           }
@@ -157,23 +157,20 @@ class OrderSagaCoordinatorImpl[F[_]](
 
 object OrderSagaCoordinatorImpl {
 
-  def apply[F[_]: Sync: Concurrent: Timer: Sleep: Parallel](
+  def apply[F[_]: Async: Sleep: Parallel](
     paymentServiceClient: PaymentServiceClient[F],
     loyaltyPointsServiceClient: LoyaltyPointsServiceClient[F],
     orderServiceClient: OrderServiceClient[F],
     sagaLogDao: SagaLogDao[F],
     maxRequestTimeout: Int
-  ): F[OrderSagaCoordinatorImpl[F]] =
-    Slf4jLogger
-      .create[F]
-      .map(
-        new OrderSagaCoordinatorImpl(
-          paymentServiceClient,
-          loyaltyPointsServiceClient,
-          orderServiceClient,
-          sagaLogDao,
-          maxRequestTimeout,
-          _
-        )
-      )
+  ): F[OrderSagaCoordinatorImpl[F]] = Applicative[F].pure(
+    new OrderSagaCoordinatorImpl(
+      paymentServiceClient,
+      loyaltyPointsServiceClient,
+      orderServiceClient,
+      sagaLogDao,
+      maxRequestTimeout,
+      NoOpLogger.impl[F]
+    )
+  )
 }

@@ -1,17 +1,15 @@
 package com.vladkopanev.cats.saga
 
 import cats.Eq
-import cats.effect.{ ContextShift, IO }
+import cats.effect.IO
+import cats.effect.testkit.TestInstances
 import cats.implicits._
-import cats.laws.discipline.{ ApplicativeTests, MonadTests, ParallelTests }
+import cats.laws.discipline.{ApplicativeTests, MonadTests, ParallelTests}
 import com.vladkopanev.cats.saga.Saga.ParF
-import com.vladkopanev.cats.saga.arbitraries._
-import org.scalacheck.{ Arbitrary, Cogen, Gen }
+import org.scalacheck.{Arbitrary, Cogen, Gen}
 import org.scalatest.funspec.AnyFunSpecLike
 import org.scalatest.prop.Configuration
 import org.typelevel.discipline.scalatest.FunSpecDiscipline
-
-import scala.concurrent.ExecutionContext
 
 class SagaLawsSpec extends FunSpecDiscipline with AnyFunSpecLike with Configuration {
   import arbitraries._
@@ -20,11 +18,9 @@ class SagaLawsSpec extends FunSpecDiscipline with AnyFunSpecLike with Configurat
   checkAll("Saga.ParallelLaws", ParallelTests[Saga[IO, *]].parallel[Int, String])
 }
 
-object arbitraries {
+object arbitraries extends TestInstances {
 
-  import cats.effect.laws.discipline.arbitrary._
-
-  implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val ticker = Ticker()
 
   implicit def lawsArbitraryForSaga[A: Arbitrary: Cogen]: Arbitrary[Saga[IO, A]] =
     Arbitrary(Gen.delay(genSaga[A]))
@@ -77,6 +73,7 @@ object arbitraries {
       compensation <- Arbitrary.arbitrary[IO[Unit]]
     } yield action.compensate(compensation)
 
+  implicit val si: SagaInterpreter[IO] = new SagaInterpreter[IO]
   implicit def eqSaga[A]: Eq[Saga[IO, A]] =
     Eq.instance {
       case (x, y) =>

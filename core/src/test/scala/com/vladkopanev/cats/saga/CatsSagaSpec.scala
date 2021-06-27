@@ -1,15 +1,14 @@
 package com.vladkopanev.cats.saga
 
-import cats.effect.concurrent.Ref
-import cats.effect.{Concurrent, ContextShift, Fiber, IO, Timer}
+import cats.effect.{Fiber, IO, Outcome, Ref}
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.CatsSagaSpec._
 import com.vladkopanev.cats.saga.Saga._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import retry.RetryPolicies
+import cats.effect.unsafe.implicits._
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 class CatsSagaSpec extends AnyFlatSpec with Matchers {
@@ -325,13 +324,15 @@ class CatsSagaSpec extends AnyFlatSpec with Matchers {
     def cancelHotelC(actionLog: Ref[IO, Vector[String]]) = sleep(100.millis) *>
       cancelHotel(actionLog.update(_ :+ "hotel canceled"))
 
-    private def awaitCompensation(r: Either[(Unit, Fiber[IO, Unit]), (Fiber[IO, Unit], Unit)]) =
+    type OutcomeUnit = Outcome[IO, Throwable, Unit]
+    private def awaitCompensation(r: Either[(OutcomeUnit, Fiber[IO, Throwable, Unit]), (Fiber[IO, Throwable, Unit], OutcomeUnit)]) =
       r.fold(_._2.join, _._1.join)
 
     val sagaIO = for {
       actionLog <- Ref.of[IO, Vector[String]](Vector.empty[String])
       _         <- (failFlight compensate cancelFlightC(actionLog)).zipWithParAll(
-        failHotel compensate cancelHotelC(actionLog))((_, _) => ())((a, b) => IO.racePair(a, b).flatMap(awaitCompensation))
+        failHotel compensate cancelHotelC(actionLog)
+      )((_, _) => ())((a, b) => IO.racePair(a, b).flatMap(awaitCompensation).void)
         .transact.orElse(IO.unit)
       log <- actionLog.get
     } yield log
@@ -372,9 +373,7 @@ class CatsSagaSpec extends AnyFlatSpec with Matchers {
 }
 
 trait TestRuntime {
-  implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
-  implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-
+  implicit val si: SagaInterpreter[IO] = new SagaInterpreter[IO]
   def sleep(d: FiniteDuration): IO[Unit] = IO.sleep(d)
 }
 

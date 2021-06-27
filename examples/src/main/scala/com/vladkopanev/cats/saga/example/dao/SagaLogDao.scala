@@ -1,8 +1,7 @@
 package com.vladkopanev.cats.saga.example.dao
 
 import java.util.UUID
-
-import cats.effect.Bracket
+import cats.effect.kernel.MonadCancelThrow
 import com.vladkopanev.cats.saga.example.model.{SagaInfo, SagaStep}
 import doobie.util.transactor.Transactor
 import io.circe.Json
@@ -25,7 +24,7 @@ trait SagaLogDao[F[_]] {
   def listUnfinishedSagas: F[List[SagaInfo]]
 }
 
-class SagaLogDaoImpl[F[_]](xa: Transactor[F])(implicit B: Bracket[F, Throwable]) extends SagaLogDao[F] {
+class SagaLogDaoImpl[F[_]](xa: Transactor[F])(implicit B: MonadCancelThrow[F]) extends SagaLogDao[F] {
   import cats.syntax.all._
   import doobie._
   import doobie.implicits._
