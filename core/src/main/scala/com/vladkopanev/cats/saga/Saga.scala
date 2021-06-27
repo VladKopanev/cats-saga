@@ -1,6 +1,6 @@
 package com.vladkopanev.cats.saga
 
-import cats.effect.Concurrent
+import cats.effect.kernel.Spawn
 import cats.implicits._
 import cats.{Parallel, _}
 import com.vladkopanev.cats.saga.Saga.SagaErr
@@ -49,14 +49,14 @@ sealed abstract class Saga[F[_], A] {
    * Returns Saga that will execute this Saga in parallel with other, combining the result in a tuple.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipPar[B](that: Saga[F, B])(implicit C: Concurrent[F]): Saga[F, (A, B)] =
+  def zipPar[B](that: Saga[F, B])(implicit S: Spawn[F]): Saga[F, (A, B)] =
     zipWithPar(that)((_, _))
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result with specified function `f`.
    * Both compensating actions would be executed in case of failure.
    * */
-  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C)(implicit C: Concurrent[F]): Saga[F, C] =
+  def zipWithPar[B, C](that: Saga[F, B])(f: (A, B) => C)(implicit S: Spawn[F]): Saga[F, C] =
     zipWithParAll(that)(f)(_ *> _)
 
   /**
@@ -66,8 +66,8 @@ sealed abstract class Saga[F[_], A] {
    * */
   def zipWithParAll[B, C](
     that: Saga[F, B]
-  )(f: (A, B) => C)(g: (F[Unit], F[Unit]) => F[Unit])(implicit C: Concurrent[F]): Saga[F, C] =
-    Saga.Par(this, that, f, g, C)
+  )(f: (A, B) => C)(g: (F[Unit], F[Unit]) => F[Unit])(implicit S: Spawn[F]): Saga[F, C] =
+    Saga.Par(this, that, f, g, S)
 }
 
 object Saga {
@@ -85,7 +85,7 @@ object Saga {
     fb: Saga[F, B],
     combine: (A, B) => C,
     compensate: (F[Unit], F[Unit]) => F[Unit],
-    concurrent: Concurrent[F]
+    concurrent: Spawn[F]
   ) extends Saga[F, C]
 
   private[saga] case class SagaErr[F[_]](cause: Throwable, compensator: F[Unit]) extends Throwable(cause)
@@ -120,14 +120,14 @@ object Saga {
    * Runs all Sagas in iterable in parallel and collects
    * the results.
    */
-  def collectAllPar[F[_]: Concurrent, A](sagas: Iterable[Saga[F, A]]): Saga[F, List[A]] =
+  def collectAllPar[F[_]: Spawn, A](sagas: Iterable[Saga[F, A]]): Saga[F, List[A]] =
     foreachPar[F, Saga[F, A], A](sagas)(identity)
 
   /**
    * Runs all Sagas in iterable in parallel, and collect
    * the results.
    */
-  def collectAllPar[F[_]: Concurrent, A](saga: Saga[F, A], rest: Saga[F, A]*): Saga[F, List[A]] =
+  def collectAllPar[F[_]: Spawn, A](saga: Saga[F, A], rest: Saga[F, A]*): Saga[F, List[A]] =
     collectAllPar(saga +: rest)
 
   /**
@@ -141,8 +141,8 @@ object Saga {
    * and returns the results in a new `List[B]`.
    *
    */
-  def foreachPar[F[_], A, B](as: Iterable[A])(fn: A => Saga[F, B])(implicit C: Concurrent[F]): Saga[F, List[B]] =
-    as.foldRight[Saga[F, List[B]]](Saga.noCompensate(C.pure(Nil))) { (a, io) =>
+  def foreachPar[F[_], A, B](as: Iterable[A])(fn: A => Saga[F, B])(implicit S: Spawn[F]): Saga[F, List[B]] =
+    as.foldRight[Saga[F, List[B]]](Saga.noCompensate(S.pure(Nil))) { (a, io) =>
       fn(a).zipWithPar(io)((b, bs) => b :: bs)
     }
 
@@ -218,7 +218,7 @@ object Saga {
       fa.asInstanceOf[Saga[F, A]]
   }
 
-  implicit def applicative[M[_]: Concurrent]: Applicative[ParF[M, *]] = new Applicative[ParF[M, *]] {
+  implicit def applicative[M[_]: Spawn]: Applicative[ParF[M, *]] = new Applicative[ParF[M, *]] {
     import ParF.{unwrap, apply => par}
 
     override def pure[A](x: A): ParF[M, A] = par(Saga.succeed(x))
@@ -229,7 +229,7 @@ object Saga {
       })
   }
 
-  implicit def parallel[M[_]: Concurrent]: Parallel.Aux[Saga[M, *], ParF[M, *]] = new Parallel[Saga[M, *]] {
+  implicit def parallel[M[_]: Spawn]: Parallel.Aux[Saga[M, *], ParF[M, *]] = new Parallel[Saga[M, *]] {
 
     override type F[x] = ParF[M, x]
 

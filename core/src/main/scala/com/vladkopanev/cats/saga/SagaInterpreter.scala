@@ -57,9 +57,9 @@ class SagaInterpreter[F[_]] {
         right: Saga[F, Any],
         combine: ((Any, Any) => X),
         combineCompensations,
-        concurrentInstance
+        spawnInstance
         ) =>
-      implicit val concurrent: Concurrent[F] = concurrentInstance
+      implicit val spawn: Spawn[F] = spawnInstance
       def coordinate[A, B, C](f: (A, B) => C)(
         fasterSaga: Outcome[F, Throwable, (A, F[Unit])],
         slowerSaga: Fiber[F, Throwable, (B, F[Unit])]
@@ -103,7 +103,7 @@ class SagaInterpreter[F[_]] {
           MonadCancel[F].canceled >> Spawn[F].never[(C, F[Unit])]
       }
 
-      Concurrent[F].racePair(interpret(left), interpret(right)).flatMap {
+      Spawn[F].racePair(interpret(left), interpret(right)).flatMap {
         case Left((fastLeft, slowRight))  => coordinate(combine)(fastLeft, slowRight)
         case Right((slowLeft, fastRight)) => coordinate((b: Any, a: Any) => combine(a, b))(fastRight, slowLeft)
       }
