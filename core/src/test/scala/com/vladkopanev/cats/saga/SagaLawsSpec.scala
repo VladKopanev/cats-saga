@@ -74,12 +74,9 @@ object arbitraries extends TestInstances {
     } yield action.compensate(compensation)
 
   implicit val si: SagaInterpreter[IO] = new SagaInterpreter[IO]
-  implicit def eqSaga[A]: Eq[Saga[IO, A]] =
-    Eq.instance {
-      case (x, y) =>
-        x.transact.attempt.unsafeRunSync() == x.transact.attempt.unsafeRunSync()
-    }
+  implicit def eqSaga[A: Eq]: Eq[Saga[IO, A]] =
+    Eq.by(_.transact)
 
-  implicit def eqParSaga[A]: Eq[Saga.ParF[IO, A]] =
+  implicit def eqParSaga[A: Eq]: Eq[Saga.ParF[IO, A]] =
     Eq.instance { case (x, y) => eqSaga[A].eqv(ParF.unwrap(x), ParF.unwrap(y)) }
 }

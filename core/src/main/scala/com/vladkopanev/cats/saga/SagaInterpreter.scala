@@ -1,7 +1,7 @@
 package com.vladkopanev.cats.saga
 
 import cats.MonadError
-import cats.effect.{ Concurrent, Fiber, Spawn }
+import cats.effect.{ Fiber, Spawn }
 import cats.effect.kernel.{ MonadCancel, Outcome }
 import com.vladkopanev.cats.saga.Saga.{
   CompensateFailed,
