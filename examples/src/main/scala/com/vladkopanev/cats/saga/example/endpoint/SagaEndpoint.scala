@@ -1,15 +1,15 @@
 package com.vladkopanev.cats.saga.example.endpoint
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.all._
 import com.vladkopanev.cats.saga.example.OrderSagaCoordinator
 import com.vladkopanev.cats.saga.example.model.OrderInfo
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.implicits._
-import org.http4s.{ HttpApp, HttpRoutes }
+import org.http4s.{HttpApp, HttpRoutes}
 
-final class SagaEndpoint[F[_]: Sync](orderSagaCoordinator: OrderSagaCoordinator[F]) extends Http4sDsl[F] {
+final class SagaEndpoint[F[_]: Concurrent](orderSagaCoordinator: OrderSagaCoordinator[F]) extends Http4sDsl[F] {
 
   private implicit val decoder = jsonOf[F, OrderInfo]
 

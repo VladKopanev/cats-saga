@@ -3,8 +3,8 @@ import sbt.file
 
 name := "cats-saga"
 
-val mainScala = "2.13.5"
-val allScala  = Seq("2.11.12", mainScala, "2.12.13")
+val mainScala = "2.13.6"
+val allScala  = Seq("2.11.12", mainScala, "2.12.14")
 
 inThisBuild(
   List(
@@ -78,10 +78,10 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion = "2.1.0"
-val catsRetryVersion = "1.1.1"
-val scalaTestVersion = "3.2.8"
-val kindProjectorVersion = "0.11.3"
+val catsVersion = "3.1.0"
+val catsRetryVersion = "3.0.0"
+val scalaTestVersion = "3.2.9"
+val kindProjectorVersion = "0.13.0"
 val disciplineCoreVersion = "1.1.3"
 val disciplineScalatestVersion = "2.1.1"
 
@@ -93,8 +93,9 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"              %% "cats-effect"               % catsVersion,
-      "org.typelevel"              %% "cats-laws"                 % catsVersion       % Test,
+      "org.typelevel"              %% "cats-laws"                 % "2.6.1"       % Test,
       "org.typelevel"              %% "cats-effect-laws"          % catsVersion       % Test,
+      "org.typelevel"              %% "cats-effect-testkit"       % catsVersion       % Test,
       "org.scalatest"              %% "scalatest"                 % scalaTestVersion  % Test,
       "org.typelevel"              %% "discipline-core"           % disciplineCoreVersion % Test,
       "org.typelevel"              %% "discipline-scalatest"      % disciplineScalatestVersion % Test,
@@ -103,10 +104,10 @@ lazy val core = project
     )
   )
 
-val http4sVersion   = "0.21.4"
+val http4sVersion   = "0.23.0-RC1"
 val log4CatsVersion = "1.1.1"
-val doobieVersion   = "0.9.0"
-val circeVersion    = "0.13.0"
+val doobieVersion   = "1.0.0-M5"
+val circeVersion    = "0.14.1"
 
 lazy val examples = project
   .in(file("examples"))
@@ -117,7 +118,7 @@ lazy val examples = project
       "ch.qos.logback"    % "logback-classic"          % "1.2.3",
       "com.github.cb372"  %% "cats-retry"              % catsRetryVersion,
       "io.chrisdavenport" %% "log4cats-core"           % log4CatsVersion,
-      "io.chrisdavenport" %% "log4cats-slf4j"          % log4CatsVersion,
+      "io.chrisdavenport" %% "log4cats-noop"           % log4CatsVersion,
       "io.circe"          %% "circe-generic"           % circeVersion,
       "io.circe"          %% "circe-parser"            % circeVersion,
       "org.http4s"        %% "http4s-circe"            % http4sVersion,
