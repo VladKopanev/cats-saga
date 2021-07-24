@@ -34,8 +34,8 @@ object SagaApp extends IOApp {
       _              <- orderSEC.recoverSagas.start
       _              <- BlazeServerBuilder[IO](ec).bindHttp(8042).withHttpApp(app).serve.compile.drain
     } yield ()).attempt.flatMap {
-      case Left(e) => IO(println(s"Saga Coordinator fails with error $e, stopping server...")).map(_ => ExitCode.Error)
-      case _       => IO(println(s"Saga Coordinator finished successfully, stopping server...")).map(_ => ExitCode.Success)
+      case Left(e) => IO(println(s"Saga Coordinator fails with error $e, stopping server...")).as(ExitCode.Error)
+      case _       => IO(println(s"Saga Coordinator finished successfully, stopping server...")).as(ExitCode.Success)
     }
   }
 
