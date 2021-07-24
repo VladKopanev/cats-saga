@@ -8,8 +8,8 @@ import com.vladkopanev.cats.saga.SagaInterpreter
 import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClient, OrderServiceClient, PaymentServiceClient}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDao
 import com.vladkopanev.cats.saga.example.model.{OrderSagaData, OrderSagaError, SagaStep}
-import io.chrisdavenport.log4cats.StructuredLogger
-import io.chrisdavenport.log4cats.noop.NoOpLogger
+import org.typelevel.log4cats.StructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import retry.{RetryPolicies, Sleep}
 
 import java.util.UUID
@@ -164,14 +164,14 @@ object OrderSagaCoordinatorImpl {
     orderServiceClient: OrderServiceClient[F],
     sagaLogDao: SagaLogDao[F],
     maxRequestTimeout: Int
-  ): F[OrderSagaCoordinatorImpl[F]] = Applicative[F].pure(
+  ): F[OrderSagaCoordinatorImpl[F]] =Slf4jLogger.create[F].map(
     new OrderSagaCoordinatorImpl(
       paymentServiceClient,
       loyaltyPointsServiceClient,
       orderServiceClient,
       sagaLogDao,
       maxRequestTimeout,
-      NoOpLogger.impl[F]
+      _
     )
   )
 }

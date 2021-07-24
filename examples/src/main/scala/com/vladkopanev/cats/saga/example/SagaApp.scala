@@ -2,7 +2,7 @@ package com.vladkopanev.cats.saga.example
 
 import cats.effect.{ExitCode, IO, IOApp}
 import com.vladkopanev.cats.saga.SagaInterpreter
-import com.vladkopanev.cats.saga.example.client.{FUtil, LoyaltyPointsServiceClientStub, OrderServiceClientStub, PaymentServiceClientStub}
+import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClientStub, OrderServiceClientStub, PaymentServiceClientStub}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDaoImpl
 import com.vladkopanev.cats.saga.example.endpoint.SagaEndpoint
 import doobie.util.transactor.Transactor
@@ -18,17 +18,15 @@ object SagaApp extends IOApp {
     val clientMaxReqTimeout = sys.env.getOrElse("CLIENT_MAX_REQUEST_TIMEOUT_SEC", "10").toInt
     val sagaMaxReqTimeout   = sys.env.getOrElse("SAGA_MAX_REQUEST_TIMEOUT_SEC", "12").toInt
 
-    val randomUtil = new FUtil[IO]
-
     val ec = ExecutionContext.fromExecutor(
       Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors())
     )
     implicit val sagaInterpreter: SagaInterpreter[IO] = new SagaInterpreter[IO]
 
     (for {
-      paymentService <- PaymentServiceClientStub(randomUtil, clientMaxReqTimeout, flakyClient)
-      loyaltyPoints  <- LoyaltyPointsServiceClientStub(randomUtil, clientMaxReqTimeout, flakyClient)
-      orderService   <- OrderServiceClientStub(randomUtil, clientMaxReqTimeout, flakyClient)
+      paymentService <- PaymentServiceClientStub[IO](clientMaxReqTimeout, flakyClient)
+      loyaltyPoints  <- LoyaltyPointsServiceClientStub[IO](clientMaxReqTimeout, flakyClient)
+      orderService   <- OrderServiceClientStub[IO](clientMaxReqTimeout, flakyClient)
       xa             = Transactor.fromDriverManager[IO]("org.postgresql.Driver", "jdbc:postgresql:Saga", "postgres", "root")
       logDao         = new SagaLogDaoImpl(xa)
       orderSEC       <- OrderSagaCoordinatorImpl(paymentService, loyaltyPoints, orderService, logDao, sagaMaxReqTimeout)

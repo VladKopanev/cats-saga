@@ -1,19 +1,21 @@
 package com.vladkopanev.cats.saga.example.client
 
-import cats.effect.{Concurrent, ContextShift, Sync, Timer}
+import cats.effect.Sync
+import cats.effect.kernel.{Async, Temporal}
 import cats.syntax.all._
 
-import scala.util.Random
 import scala.concurrent.duration._
+import scala.util.Random
 
-class FUtil[F[_]: Concurrent: Timer: ContextShift] {
-  def randomSleep(maxTimeout: Int): F[Unit] =
+object FUtil {
+  def randomSleep[F[_]: Async](maxTimeout: Int): F[Unit] = {
     for {
       randomSeconds <- Sync[F].delay(Random.nextInt(maxTimeout))
-      _             <- Timer[F].sleep(randomSeconds.seconds)
+      _             <- Temporal[F].sleep(randomSeconds.seconds)
     } yield ()
+  }
 
-  def randomFail(operationName: String): F[Unit] =
+  def randomFail[F[_]: Async](operationName: String): F[Unit] =
     for {
       randomInt <- Sync[F].delay(Random.nextInt(100))
       _         <- if (randomInt % 10 == 0) Sync[F].raiseError[Unit](new RuntimeException(s"Failed to execute $operationName"))
