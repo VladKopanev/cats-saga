@@ -73,7 +73,7 @@ object arbitraries extends TestInstances {
       compensation <- Arbitrary.arbitrary[IO[Unit]]
     } yield action.compensate(compensation)
 
-  implicit val si: SagaInterpreter[IO] = new SagaInterpreter[IO]
+  implicit val si: SagaTransactor[IO] = new SagaDefaultTransactor[IO]
   implicit def eqSaga[A: Eq]: Eq[Saga[IO, A]] =
     Eq.by(_.transact)
 

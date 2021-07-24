@@ -38,8 +38,8 @@ sealed abstract class Saga[F[_], A] {
   /**
    * Materializes this Saga to effect `F` using MonadError typeclass instance.
    * */
-  def transact(implicit SI: SagaInterpreter[F], F: MonadError[F, Throwable]): F[A] =
-    SI.interpret(this)
+  def transact(implicit SI: SagaTransactor[F], F: MonadError[F, Throwable]): F[A] =
+    SI.transact(this)
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result in a tuple.

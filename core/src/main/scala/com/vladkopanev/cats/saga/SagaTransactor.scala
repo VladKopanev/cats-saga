@@ -16,13 +16,13 @@ import com.vladkopanev.cats.saga.Saga.{
 }
 import cats.syntax.all._
 
-trait SagaInterpreter[F[_]] {
-  def interpret[A](saga: Saga[F, A])(implicit F: MonadError[F, Throwable]): F[A]
+trait SagaTransactor[F[_]] {
+  def transact[A](saga: Saga[F, A])(implicit F: MonadError[F, Throwable]): F[A]
 }
 
-class SagaDefaultInterpreter[F[_]] extends SagaInterpreter[F] {
+class SagaDefaultTransactor[F[_]] extends SagaTransactor[F] {
 
-  def interpret[A](saga: Saga[F, A])(implicit F: MonadError[F, Throwable]): F[A] = {
+  def transact[A](saga: Saga[F, A])(implicit F: MonadError[F, Throwable]): F[A] = {
     def run[X](s: Saga[F, X]): F[(X, F[Unit])] = s match {
       case Suceeded(value) => F.pure((value, F.unit))
       case Failed(err)     => F.raiseError(SagaErr(err, F.unit))

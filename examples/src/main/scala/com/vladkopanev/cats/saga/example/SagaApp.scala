@@ -1,7 +1,7 @@
 package com.vladkopanev.cats.saga.example
 
 import cats.effect.{ExitCode, IO, IOApp}
-import com.vladkopanev.cats.saga.{SagaDefaultInterpreter, SagaInterpreter}
+import com.vladkopanev.cats.saga.{SagaDefaultTransactor, SagaTransactor}
 import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClientStub, OrderServiceClientStub, PaymentServiceClientStub}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDaoImpl
 import com.vladkopanev.cats.saga.example.endpoint.SagaEndpoint
@@ -21,7 +21,7 @@ object SagaApp extends IOApp {
     val ec = ExecutionContext.fromExecutor(
       Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors())
     )
-    implicit val sagaInterpreter: SagaInterpreter[IO] = new SagaDefaultInterpreter[IO]
+    implicit val sagaInterpreter: SagaTransactor[IO] = new SagaDefaultTransactor[IO]
 
     (for {
       paymentService <- PaymentServiceClientStub[IO](clientMaxReqTimeout, flakyClient)
