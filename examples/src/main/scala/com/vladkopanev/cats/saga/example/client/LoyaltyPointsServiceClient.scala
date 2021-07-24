@@ -1,11 +1,9 @@
 package com.vladkopanev.cats.saga.example.client
 
 import java.util.UUID
-
-import cats.Monad
-import cats.effect.Sync
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import cats.effect.kernel.Async
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import cats.syntax.all._
 
 trait LoyaltyPointsServiceClient[F[_]] {
@@ -15,11 +13,9 @@ trait LoyaltyPointsServiceClient[F[_]] {
   def cancelLoyaltyPoints(userId: UUID, amount: Double, traceId: String): F[Unit]
 }
 
-class LoyaltyPointsServiceClientStub[F[_]: Monad](logger: Logger[F],
-                                                  randomUtil: FUtil[F],
-                                                  maxRequestTimeout: Int,
-                                                  flaky: Boolean) extends LoyaltyPointsServiceClient[F] {
-  import randomUtil._
+class LoyaltyPointsServiceClientStub[F[_]: Async](logger: Logger[F], maxRequestTimeout: Int, flaky: Boolean)
+    extends LoyaltyPointsServiceClient[F] {
+  import FUtil._
 
   override def assignLoyaltyPoints(userId: UUID, amount: Double, traceId: String): F[Unit] =
     for {
@@ -39,8 +35,6 @@ class LoyaltyPointsServiceClientStub[F[_]: Monad](logger: Logger[F],
 
 object LoyaltyPointsServiceClientStub {
 
-  def apply[F[_]: Sync](randomUtil: FUtil[F],
-                        maxRequestTimeout: Int,
-                        flaky: Boolean): F[LoyaltyPointsServiceClientStub[F]] =
-    Slf4jLogger.create[F].map(new LoyaltyPointsServiceClientStub(_, randomUtil, maxRequestTimeout, flaky))
+  def apply[F[_]: Async](maxRequestTimeout: Int, flaky: Boolean): F[LoyaltyPointsServiceClientStub[F]] =
+    Slf4jLogger.create[F].map(new LoyaltyPointsServiceClientStub(_, maxRequestTimeout, flaky))
 }

@@ -1,12 +1,10 @@
 package com.vladkopanev.cats.saga.example.client
 
 import java.util.UUID
-
-import cats.Monad
-import cats.effect.Sync
+import cats.effect.kernel.Async
 import cats.syntax.all._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait PaymentServiceClient[F[_]] {
 
@@ -15,11 +13,10 @@ trait PaymentServiceClient[F[_]] {
   def refundPayments(userId: UUID, amount: BigDecimal, traceId: String): F[Unit]
 }
 
-class PaymentServiceClientStub[F[_]: Monad](logger: Logger[F],
-                                            randomUtil: FUtil[F],
+class PaymentServiceClientStub[F[_]: Async](logger: Logger[F],
                                             maxRequestTimeout: Int,
                                             flaky: Boolean) extends PaymentServiceClient[F] {
-  import randomUtil._
+  import FUtil._
 
   override def collectPayments(userId: UUID, amount: BigDecimal, traceId: String): F[Unit] =
     for {
@@ -38,6 +35,6 @@ class PaymentServiceClientStub[F[_]: Monad](logger: Logger[F],
 
 object PaymentServiceClientStub {
 
-  def apply[F[_]: Sync](randomUtil: FUtil[F], maxRequestTimeout: Int, flaky: Boolean): F[PaymentServiceClient[F]] =
-    Slf4jLogger.create[F].map(new PaymentServiceClientStub(_, randomUtil, maxRequestTimeout, flaky))
+  def apply[F[_]: Async](maxRequestTimeout: Int, flaky: Boolean): F[PaymentServiceClient[F]] =
+    Slf4jLogger.create.map(new PaymentServiceClientStub(_, maxRequestTimeout, flaky))
 }

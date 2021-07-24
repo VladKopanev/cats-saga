@@ -1,12 +1,10 @@
 package com.vladkopanev.cats.saga.example.client
 
 import java.util.UUID
-
-import cats.Monad
-import cats.effect.Sync
+import cats.effect.kernel.Async
 import cats.syntax.all._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait OrderServiceClient[F[_]] {
 
@@ -15,11 +13,10 @@ trait OrderServiceClient[F[_]] {
   def reopenOrder(userId: UUID, orderId: BigInt, traceId: String): F[Unit]
 }
 
-class OrderServiceClientStub[F[_]: Monad](logger: Logger[F],
-                                          randomUtil: FUtil[F],
+class OrderServiceClientStub[F[_]: Async](logger: Logger[F],
                                           maxRequestTimeout: Int,
                                           flaky: Boolean) extends OrderServiceClient[F] {
-  import randomUtil._
+  import FUtil._
 
   override def closeOrder(userId: UUID, orderId: BigInt, traceId: String): F[Unit] =
     for {
@@ -38,6 +35,6 @@ class OrderServiceClientStub[F[_]: Monad](logger: Logger[F],
 
 object OrderServiceClientStub {
 
-  def apply[F[_]: Sync](randomUtil: FUtil[F], maxRequestTimeout: Int, flaky: Boolean): F[OrderServiceClientStub[F]] =
-    Slf4jLogger.create[F].map(new OrderServiceClientStub(_, randomUtil, maxRequestTimeout, flaky))
+  def apply[F[_]: Async](maxRequestTimeout: Int, flaky: Boolean): F[OrderServiceClientStub[F]] =
+    Slf4jLogger.create[F].map(new OrderServiceClientStub(_, maxRequestTimeout, flaky))
 }
