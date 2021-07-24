@@ -3,7 +3,6 @@ package com.vladkopanev.cats.saga
 import cats.effect.kernel.Spawn
 import cats.implicits._
 import cats.{Parallel, _}
-import com.vladkopanev.cats.saga.Saga.SagaErr
 import retry._
 
 /**
@@ -39,11 +38,8 @@ sealed abstract class Saga[F[_], A] {
   /**
    * Materializes this Saga to effect `F` using MonadError typeclass instance.
    * */
-  def transact(implicit SI: SagaInterpreter[F], F: MonadError[F, Throwable]): F[A] = {
-    SI.interpret(this).map(_._1).handleErrorWith {
-      case e: SagaErr[F] => e.compensator.orElse(F.unit) *> F.raiseError(e.cause)
-    }
-  }
+  def transact(implicit SI: SagaInterpreter[F], F: MonadError[F, Throwable]): F[A] =
+    SI.interpret(this)
 
   /**
    * Returns Saga that will execute this Saga in parallel with other, combining the result in a tuple.
