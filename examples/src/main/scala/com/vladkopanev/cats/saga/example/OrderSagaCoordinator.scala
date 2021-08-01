@@ -4,7 +4,7 @@ import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.syntax.all._
 import cats.{Applicative, Parallel}
-import com.vladkopanev.cats.saga.SagaInterpreter
+import com.vladkopanev.cats.saga.SagaTransactor
 import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClient, OrderServiceClient, PaymentServiceClient}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDao
 import com.vladkopanev.cats.saga.example.model.{OrderSagaData, OrderSagaError, SagaStep}
@@ -28,7 +28,7 @@ class OrderSagaCoordinatorImpl[F[_]](
   sagaLogDao: SagaLogDao[F],
   maxRequestTimeout: Int,
   logger: StructuredLogger[F],
-)(implicit A: Async[F], sagaInterpreter: SagaInterpreter[F], P: Parallel[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
+)(implicit A: Async[F], sagaInterpreter: SagaTransactor[F], P: Parallel[F], S: Sleep[F]) extends OrderSagaCoordinator[F] {
 
   import com.vladkopanev.cats.saga.Saga._
 
@@ -158,7 +158,7 @@ class OrderSagaCoordinatorImpl[F[_]](
 
 object OrderSagaCoordinatorImpl {
 
-  def apply[F[_]: Async: Sleep: Parallel: SagaInterpreter](
+  def apply[F[_]: Async: Sleep: Parallel: SagaTransactor](
     paymentServiceClient: PaymentServiceClient[F],
     loyaltyPointsServiceClient: LoyaltyPointsServiceClient[F],
     orderServiceClient: OrderServiceClient[F],

@@ -1,7 +1,7 @@
 package com.vladkopanev.cats.saga.example
 
 import cats.effect.{ExitCode, IO, IOApp}
-import com.vladkopanev.cats.saga.SagaInterpreter
+import com.vladkopanev.cats.saga.{SagaDefaultTransactor, SagaTransactor}
 import com.vladkopanev.cats.saga.example.client.{LoyaltyPointsServiceClientStub, OrderServiceClientStub, PaymentServiceClientStub}
 import com.vladkopanev.cats.saga.example.dao.SagaLogDaoImpl
 import com.vladkopanev.cats.saga.example.endpoint.SagaEndpoint
@@ -21,7 +21,7 @@ object SagaApp extends IOApp {
     val ec = ExecutionContext.fromExecutor(
       Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors())
     )
-    implicit val sagaInterpreter: SagaInterpreter[IO] = new SagaInterpreter[IO]
+    implicit val sagaInterpreter: SagaTransactor[IO] = new SagaDefaultTransactor[IO]
 
     (for {
       paymentService <- PaymentServiceClientStub[IO](clientMaxReqTimeout, flakyClient)
@@ -34,8 +34,8 @@ object SagaApp extends IOApp {
       _              <- orderSEC.recoverSagas.start
       _              <- BlazeServerBuilder[IO](ec).bindHttp(8042).withHttpApp(app).serve.compile.drain
     } yield ()).attempt.flatMap {
-      case Left(e) => IO(println(s"Saga Coordinator fails with error $e, stopping server...")).map(_ => ExitCode.Error)
-      case _       => IO(println(s"Saga Coordinator finished successfully, stopping server...")).map(_ => ExitCode.Success)
+      case Left(e) => IO(println(s"Saga Coordinator fails with error $e, stopping server...")).as(ExitCode.Error)
+      case _       => IO(println(s"Saga Coordinator finished successfully, stopping server...")).as(ExitCode.Success)
     }
   }
 

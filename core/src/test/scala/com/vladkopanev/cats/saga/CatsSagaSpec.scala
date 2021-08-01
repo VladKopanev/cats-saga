@@ -373,7 +373,7 @@ class CatsSagaSpec extends AnyFlatSpec with Matchers {
 }
 
 trait TestRuntime {
-  implicit val si: SagaInterpreter[IO] = new SagaInterpreter[IO]
+  implicit val si: SagaTransactor[IO] = new SagaDefaultTransactor[IO]
   def sleep(d: FiniteDuration): IO[Unit] = IO.sleep(d)
 }
 
