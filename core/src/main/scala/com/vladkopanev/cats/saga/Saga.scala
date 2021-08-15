@@ -173,13 +173,13 @@ object Saga {
     def compensate[E <: Throwable](compensation: Either[E, A] => F[Unit]): Saga[F, A] =
       Saga.compensate(request, compensation)
 
-    def compensateIfFail[E <: Throwable](compensation: E => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    def compensateIfFail[E <: Throwable](compensation: E => F[Unit]): Saga[F, A] =
       Saga.compensateIfFail(request, compensation)
 
-    def compensateIfSuccess(compensation: A => F[Unit])(implicit F: InvariantMonoidal[F]): Saga[F, A] =
+    def compensateIfSuccess(compensation: A => F[Unit]): Saga[F, A] =
       Saga.compensateIfSuccess(request, compensation)
 
-    def noCompensate(implicit F: InvariantMonoidal[F]): Saga[F, A] = Saga.noCompensate(request)
+    def noCompensate: Saga[F, A] = Saga.noCompensate(request)
 
     def retryableCompensate(
       compensator: F[Unit],
