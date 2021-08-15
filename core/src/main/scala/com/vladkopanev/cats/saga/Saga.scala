@@ -1,8 +1,8 @@
 package com.vladkopanev.cats.saga
 
 import cats.effect.kernel.Spawn
-import cats.implicits._
-import cats.{Parallel, _}
+import cats.syntax.apply._
+import cats.{ ~>, Applicative, Monad, MonadError, Parallel }
 import retry._
 
 /**
@@ -68,10 +68,11 @@ sealed abstract class Saga[F[_], A] {
 
 object Saga {
 
-  private[saga] case class Suceeded[F[_], A](value: A)                                                      extends Saga[F, A]
-  private[saga] case class Failed[F[_], A](value: Throwable)                                                extends Saga[F, A]
-  private[saga] case class Noop[F[_], A](action: F[A])                                                      extends Saga[F, A]
-  private[saga] case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit]) extends Saga[F, A]
+  private[saga] case class Suceeded[F[_], A](value: A)       extends Saga[F, A]
+  private[saga] case class Failed[F[_], A](value: Throwable) extends Saga[F, A]
+  private[saga] case class Noop[F[_], A](action: F[A])       extends Saga[F, A]
+  private[saga] case class Step[F[_], A, E <: Throwable](action: F[A], compensate: Either[E, A] => F[Unit])
+      extends Saga[F, A]
   private[saga] case class CompensateFailed[F[_], A, E <: Throwable](action: F[A], compensate: E => F[Unit])
       extends Saga[F, A]
   private[saga] case class CompensateSucceeded[F[_], A](action: F[A], compensate: A => F[Unit]) extends Saga[F, A]
@@ -215,7 +216,7 @@ object Saga {
   }
 
   implicit def applicative[M[_]: Spawn]: Applicative[ParF[M, *]] = new Applicative[ParF[M, *]] {
-    import ParF.{unwrap, apply => par}
+    import ParF.{ unwrap, apply => par }
 
     override def pure[A](x: A): ParF[M, A] = par(Saga.succeed(x))
 
