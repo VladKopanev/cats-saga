@@ -4,7 +4,7 @@ import sbt.file
 name := "cats-saga"
 
 val mainScala = "2.13.6"
-val allScala  = Seq("2.11.12", mainScala, "2.12.14")
+val allScala  = Seq(mainScala, "2.12.14")
 
 inThisBuild(
   List(
@@ -47,14 +47,6 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused",
     "-Ywarn-value-discard"
   ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 11)) =>
-      Seq(
-        "-Yno-adapted-args",
-        "-Ywarn-inaccessible",
-        "-Ywarn-infer-any",
-        "-Ywarn-nullary-override",
-        "-Ywarn-nullary-unit"
-      )
     case Some((2, 12)) =>
       Seq(
         "-Xsource:2.13",
