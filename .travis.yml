@@ -6,10 +6,10 @@ matrix:
   include:
     # Scala 2.12, JVM
     - jdk: openjdk8
-      scala: 2.12.8
+      scala: 2.12.14
     # Scala 2.13, JVM
     - jdk: openjdk8
-      scala: 2.13.0
+      scala: 2.13.6
 branches:
   only:
     - master
