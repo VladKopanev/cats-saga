@@ -1,8 +1,9 @@
 package com.vladkopanev.cats.saga
 
+import cats.arrow.FunctionK
 import cats.effect.kernel.Spawn
 import cats.syntax.apply._
-import cats.{ ~>, Applicative, Monad, MonadError, Parallel }
+import cats.{Applicative, Monad, MonadError, Parallel, ~>}
 import retry._
 
 /**
@@ -234,8 +235,14 @@ object Saga {
 
     final override val monad: Monad[Saga[M, *]] = Saga.monad[M]
 
-    override val sequential: F ~> Saga[M, *] = λ[F ~> Saga[M, *]](ParF.unwrap(_))
+    type SagaM[A] = Saga[M, A]
 
-    override val parallel: Saga[M, *] ~> F = λ[Saga[M, *] ~> F](ParF(_))
+    override val sequential: F ~> Saga[M, *] = new FunctionK[F, SagaM] {
+      override def apply[A](fa: F[A]): SagaM[A] = ParF.unwrap(fa)
+    }
+
+    override val parallel: Saga[M, *] ~> F = new FunctionK[SagaM, F] {
+      override def apply[A](saga: SagaM[A]): F[A] = ParF(saga)
+    }
   }
 }
