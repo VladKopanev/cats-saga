@@ -52,7 +52,7 @@ after_success:
 notifications:
   webhooks:
     urls:
-      - http://cibuddybot.herokuapp.com/travis/build/notify?subscriberId=c989a05d-a52b-4fa9-a53d-87e9dfe3ba86
+      - $WEBHOOK_URL
     on_success: always
     on_failure: always
     on_start: change
