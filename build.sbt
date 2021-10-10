@@ -4,7 +4,7 @@ import sbt.file
 name := "cats-saga"
 
 val mainScala = "2.13.6"
-val allScala  = Seq(mainScala, "2.12.14", "3.0.1")
+val allScala  = Seq(mainScala, "2.12.15", "3.0.1")
 
 inThisBuild(
   List(
