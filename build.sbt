@@ -118,7 +118,7 @@ lazy val examples = project
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic"          % "1.2.3",
       "com.github.cb372"  %% "cats-retry"              % catsRetryVersion,
-      "org.typelevel" %% "log4cats-slf4j"          % log4CatsVersion,
+      "org.typelevel"     %% "log4cats-slf4j"          % log4CatsVersion,
       "io.circe"          %% "circe-generic"           % circeVersion,
       "io.circe"          %% "circe-parser"            % circeVersion,
       "org.http4s"        %% "http4s-circe"            % http4sVersion,
