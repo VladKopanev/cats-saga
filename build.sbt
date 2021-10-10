@@ -4,7 +4,7 @@ import sbt.file
 name := "cats-saga"
 
 val mainScala = "2.13.6"
-val allScala  = Seq(mainScala, "2.12.14")
+val allScala  = Seq(mainScala, "2.12.14", "3.0.1")
 
 inThisBuild(
   List(
@@ -47,6 +47,8 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused",
     "-Ywarn-value-discard"
   ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) =>
+      Seq("-Ykind-projector", "-unchecked")
     case Some((2, 12)) =>
       Seq(
         "-Xsource:2.13",
@@ -70,12 +72,12 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion = "3.1.0"
+val catsVersion = "3.1.1"
 val catsRetryVersion = "3.1.0"
 val scalaTestVersion = "3.2.9"
 val kindProjectorVersion = "0.13.0"
-val disciplineCoreVersion = "1.1.3"
-val disciplineScalatestVersion = "2.1.1"
+val disciplineCoreVersion = "1.1.5"
+val disciplineScalatestVersion = "2.1.5"
 
 lazy val core = project
   .in(file("core"))
@@ -92,8 +94,15 @@ lazy val core = project
       "org.typelevel"              %% "discipline-core"           % disciplineCoreVersion % Test,
       "org.typelevel"              %% "discipline-scalatest"      % disciplineScalatestVersion % Test,
       "com.github.cb372"           %% "cats-retry"                % catsRetryVersion  % Optional,
-      compilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full)
-    )
+    ),
+    libraryDependencies ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) =>
+          Nil
+        case _ =>
+          List(compilerPlugin("org.typelevel" % "kind-projector" % kindProjectorVersion cross CrossVersion.full))
+      }
+    }
   )
 
 val http4sVersion   = "0.23.0-RC1"
@@ -109,7 +118,7 @@ lazy val examples = project
     libraryDependencies ++= Seq(
       "ch.qos.logback"    % "logback-classic"          % "1.2.3",
       "com.github.cb372"  %% "cats-retry"              % catsRetryVersion,
-      "org.typelevel" %% "log4cats-slf4j"          % log4CatsVersion,
+      "org.typelevel"     %% "log4cats-slf4j"          % log4CatsVersion,
       "io.circe"          %% "circe-generic"           % circeVersion,
       "io.circe"          %% "circe-parser"            % circeVersion,
       "org.http4s"        %% "http4s-circe"            % http4sVersion,
