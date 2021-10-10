@@ -48,3 +48,13 @@ after_success:
 - bash <(curl -s https://codecov.io/bash)
 - if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION releaseEarly;
   fi
+
+notifications:
+  webhooks:
+    urls:
+      - $WEBHOOK_URL
+    on_success: change
+    on_failure: always
+    on_start: change
+    on_cancel: always
+    on_error: always
