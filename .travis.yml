@@ -6,10 +6,13 @@ matrix:
   include:
     # Scala 2.12, JVM
     - jdk: openjdk8
-      scala: 2.12.14
+      scala: 2.12.15
     # Scala 2.13, JVM
     - jdk: openjdk8
       scala: 2.13.6
+    # Scala 3, JVM
+    - jdk: openjdk8
+      scala: 3.0.2
 branches:
   only:
     - master
@@ -24,6 +27,9 @@ before_install:
   ls travis;
   tar xv -C travis -f travis/secrets.tar;
   fi
+
+before_script:
+- echo $HOME
 
 cache:
   directories:
@@ -48,3 +54,13 @@ after_success:
 - bash <(curl -s https://codecov.io/bash)
 - if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION releaseEarly;
   fi
+
+notifications:
+  webhooks:
+    urls:
+      - $WEBHOOK_URL
+    on_success: always
+    on_failure: always
+    on_start: change
+    on_cancel: always
+    on_error: always
