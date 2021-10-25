@@ -28,6 +28,9 @@ before_install:
   tar xv -C travis -f travis/secrets.tar;
   fi
 
+before_script:
+- echo $HOME
+
 cache:
   directories:
     - $HOME/.sbt/1.0/dependency
