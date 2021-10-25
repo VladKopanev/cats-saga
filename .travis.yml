@@ -12,7 +12,7 @@ matrix:
       scala: 2.13.6
     # Scala 3, JVM
     - jdk: openjdk8
-      scala: 3.0.2
+      scala: 3.1.0
 branches:
   only:
     - master
