@@ -72,11 +72,11 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion = "3.1.1"
-val catsRetryVersion = "3.1.0"
-val scalaTestVersion = "3.2.9"
-val kindProjectorVersion = "0.13.2"
-val disciplineCoreVersion = "1.3.0"
+val catsVersion                = "3.3.0"
+val catsRetryVersion           = "3.1.0"
+val scalaTestVersion           = "3.2.9"
+val kindProjectorVersion       = "0.13.2"
+val disciplineCoreVersion      = "1.3.0"
 val disciplineScalatestVersion = "2.1.5"
 
 lazy val core = project
@@ -86,14 +86,14 @@ lazy val core = project
     name := "cats-saga",
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
-      "org.typelevel"              %% "cats-effect"               % catsVersion,
-      "org.typelevel"              %% "cats-laws"                 % "2.6.1"       % Test,
-      "org.typelevel"              %% "cats-effect-laws"          % catsVersion       % Test,
-      "org.typelevel"              %% "cats-effect-testkit"       % catsVersion       % Test,
-      "org.scalatest"              %% "scalatest"                 % scalaTestVersion  % Test,
-      "org.typelevel"              %% "discipline-core"           % disciplineCoreVersion % Test,
-      "org.typelevel"              %% "discipline-scalatest"      % disciplineScalatestVersion % Test,
-      "com.github.cb372"           %% "cats-retry"                % catsRetryVersion  % Optional,
+      "org.typelevel"    %% "cats-effect"          % catsVersion,
+      "org.typelevel"    %% "cats-laws"            % "2.6.1" % Test,
+      "org.typelevel"    %% "cats-effect-laws"     % catsVersion % Test,
+      "org.typelevel"    %% "cats-effect-testkit"  % catsVersion % Test,
+      "org.scalatest"    %% "scalatest"            % scalaTestVersion % Test,
+      "org.typelevel"    %% "discipline-core"      % disciplineCoreVersion % Test,
+      "org.typelevel"    %% "discipline-scalatest" % disciplineScalatestVersion % Test,
+      "com.github.cb372" %% "cats-retry"           % catsRetryVersion % Optional
     ),
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
@@ -116,19 +116,19 @@ lazy val examples = project
     commonSettings,
     coverageEnabled := false,
     libraryDependencies ++= Seq(
-      "ch.qos.logback"    % "logback-classic"          % "1.2.3",
-      "com.github.cb372"  %% "cats-retry"              % catsRetryVersion,
-      "org.typelevel"     %% "log4cats-slf4j"          % log4CatsVersion,
-      "io.circe"          %% "circe-generic"           % circeVersion,
-      "io.circe"          %% "circe-parser"            % circeVersion,
-      "org.http4s"        %% "http4s-circe"            % http4sVersion,
-      "org.http4s"        %% "http4s-dsl"              % http4sVersion,
-      "org.http4s"        %% "http4s-blaze-server"     % http4sVersion,
-      "org.tpolecat"      %% "doobie-core"             % doobieVersion,
-      "org.tpolecat"      %% "doobie-hikari"           % doobieVersion,
-      "org.tpolecat"      %% "doobie-postgres"         % doobieVersion,
-      compilerPlugin("org.typelevel"    %% "kind-projector"     % kindProjectorVersion cross CrossVersion.full),
-      compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.1")
+      "ch.qos.logback"   % "logback-classic"      % "1.2.3",
+      "com.github.cb372" %% "cats-retry"          % catsRetryVersion,
+      "org.typelevel"    %% "log4cats-slf4j"      % log4CatsVersion,
+      "io.circe"         %% "circe-generic"       % circeVersion,
+      "io.circe"         %% "circe-parser"        % circeVersion,
+      "org.http4s"       %% "http4s-circe"        % http4sVersion,
+      "org.http4s"       %% "http4s-dsl"          % http4sVersion,
+      "org.http4s"       %% "http4s-blaze-server" % http4sVersion,
+      "org.tpolecat"     %% "doobie-core"         % doobieVersion,
+      "org.tpolecat"     %% "doobie-hikari"       % doobieVersion,
+      "org.tpolecat"     %% "doobie-postgres"     % doobieVersion,
+      compilerPlugin("org.typelevel" %% "kind-projector"     % kindProjectorVersion cross CrossVersion.full),
+      compilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
     )
   )
   .dependsOn(core % "compile->compile")
