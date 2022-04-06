@@ -72,7 +72,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion                = "3.3.5"
+val catsVersion                = "3.3.11"
 val catsRetryVersion           = "3.1.0"
 val scalaTestVersion           = "3.2.11"
 val kindProjectorVersion       = "0.13.2"
