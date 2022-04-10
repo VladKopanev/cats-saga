@@ -76,7 +76,7 @@ val catsVersion                = "3.3.5"
 val catsRetryVersion           = "3.1.0"
 val scalaTestVersion           = "3.2.11"
 val kindProjectorVersion       = "0.13.2"
-val disciplineCoreVersion      = "1.3.0"
+val disciplineCoreVersion      = "1.5.0"
 val disciplineScalatestVersion = "2.1.5"
 
 lazy val core = project
