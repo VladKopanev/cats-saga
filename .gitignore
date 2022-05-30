@@ -8,8 +8,48 @@ project/.sbt
 test-output/
 local.*
 
-# if you are here to add your IDE's files please read this instead:
-# https://stackoverflow.com/questions/7335420/global-git-ignore#22885996
-website/node_modules
-website/build
-website/i18n/en.json
+# bloop and metals
+.bloop
+.bsp
+
+# metals
+project/metals.sbt
+.metals
+
+# vs code
+.vscode
+
+# scala 3
+.tasty
+
+# sbt
+project/project/
+project/target/
+target/
+
+# eclipse
+build/
+.classpath
+.project
+.settings
+.worksheet
+bin/
+.cache
+
+# intellij idea
+*.log
+*.iml
+*.ipr
+*.iws
+.idea
+
+# mac
+.DS_Store
+
+# other?
+.history
+.scala_dependencies
+.cache-main
+
+#general
+*.class
