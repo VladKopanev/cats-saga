@@ -1,4 +1,3 @@
-import com.typesafe.sbt.SbtPgp.autoImportImpl.pgpSecretRing
 import sbt.file
 
 name := "cats-saga"
@@ -22,8 +21,6 @@ inThisBuild(
     scmInfo := Some(
       ScmInfo(url("https://github.com/VladKopanev/cats-saga"), "scm:git:git@github.com/VladKopanev/cats-saga.git")
     ),
-    pgpPublicRing := file("./travis/local.pubring.asc"),
-    pgpSecretRing := file("./travis/local.secring.asc"),
   )
 )
 
