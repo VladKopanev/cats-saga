@@ -4,9 +4,9 @@ import cats.Eq
 import cats.effect.IO
 import cats.effect.testkit.TestInstances
 import cats.implicits._
-import cats.laws.discipline.{ApplicativeTests, MonadTests, ParallelTests}
+import cats.laws.discipline.{ ApplicativeTests, MonadTests, ParallelTests }
 import com.vladkopanev.cats.saga.Saga.ParF
-import org.scalacheck.{Arbitrary, Cogen, Gen}
+import org.scalacheck.{ Arbitrary, Cogen, Gen }
 import org.scalatest.funspec.AnyFunSpecLike
 import org.scalatest.prop.Configuration
 import org.typelevel.discipline.scalatest.FunSpecDiscipline
@@ -56,20 +56,20 @@ object arbitraries extends TestInstances {
   def genMapOne[A: Arbitrary: Cogen]: Gen[Saga[IO, A]] =
     for {
       ioa <- Arbitrary.arbitrary[Saga[IO, A]]
-      f <- Arbitrary.arbitrary[A => A]
+      f   <- Arbitrary.arbitrary[A => A]
     } yield ioa.map(f)
 
   def genMapTwo[A: Arbitrary: Cogen]: Gen[Saga[IO, A]] =
     for {
       ioa <- Arbitrary.arbitrary[Saga[IO, A]]
-      f <- Arbitrary.arbitrary[A => A]
-      g <- Arbitrary.arbitrary[A => A]
+      f   <- Arbitrary.arbitrary[A => A]
+      g   <- Arbitrary.arbitrary[A => A]
     } yield ioa.map(f).map(g)
 
   import Saga._
   def genCompensate[A: Arbitrary: Cogen]: Gen[Saga[IO, A]] =
     for {
-      action <- Arbitrary.arbitrary[IO[A]]
+      action       <- Arbitrary.arbitrary[IO[A]]
       compensation <- Arbitrary.arbitrary[IO[Unit]]
     } yield action.compensate(compensation)
 

@@ -27,6 +27,7 @@ before_install:
   ls travis;
   tar xv -C travis -f travis/secrets.tar;
   fi
+- git fetch --tags
 
 before_script:
 - echo $HOME
@@ -52,7 +53,7 @@ env:
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
-- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION releaseEarly;
+- if [ $TRAVIS_PULL_REQUEST = 'false' ]; then sbt ++$TRAVIS_SCALA_VERSION ci-release;
   fi
 
 notifications:
