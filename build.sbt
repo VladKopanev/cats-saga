@@ -20,7 +20,7 @@ inThisBuild(
     ),
     scmInfo := Some(
       ScmInfo(url("https://github.com/VladKopanev/cats-saga"), "scm:git:git@github.com/VladKopanev/cats-saga.git")
-    ),
+    )
   )
 )
 
@@ -73,7 +73,7 @@ val catsRetryVersion           = "3.1.0"
 val scalaTestVersion           = "3.2.12"
 val kindProjectorVersion       = "0.13.2"
 val disciplineCoreVersion      = "1.5.1"
-val disciplineScalatestVersion = "2.1.5"
+val disciplineScalatestVersion = "2.2.0"
 
 lazy val core = project
   .in(file("core"))
