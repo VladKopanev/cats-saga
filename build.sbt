@@ -83,7 +83,7 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "cats-effect"          % catsVersion,
-      "org.typelevel"    %% "cats-laws"            % "2.7.0" % Test,
+      "org.typelevel"    %% "cats-laws"            % "2.8.0" % Test,
       "org.typelevel"    %% "cats-effect-laws"     % catsVersion % Test,
       "org.typelevel"    %% "cats-effect-testkit"  % catsVersion % Test,
       "org.scalatest"    %% "scalatest"            % scalaTestVersion % Test,
