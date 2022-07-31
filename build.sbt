@@ -3,7 +3,8 @@ import sbt.file
 name := "cats-saga"
 
 val mainScala = "2.13.8"
-val allScala  = Seq(mainScala, "2.12.16", "3.0.2")
+val allScala  = Seq(mainScala, "2.12.16", "3.1.3")
+
 
 inThisBuild(
   List(
@@ -68,12 +69,12 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion                = "3.3.12"
+val catsVersion                = "3.3.14"
 val catsRetryVersion           = "3.1.0"
 val scalaTestVersion           = "3.2.12"
 val kindProjectorVersion       = "0.13.2"
 val disciplineCoreVersion      = "1.5.1"
-val disciplineScalatestVersion = "2.1.5"
+val disciplineScalatestVersion = "2.2.0"
 
 lazy val core = project
   .in(file("core"))
@@ -83,7 +84,7 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "cats-effect"          % catsVersion,
-      "org.typelevel"    %% "cats-laws"            % "2.7.0" % Test,
+      "org.typelevel"    %% "cats-laws"            % "2.8.0" % Test,
       "org.typelevel"    %% "cats-effect-laws"     % catsVersion % Test,
       "org.typelevel"    %% "cats-effect-testkit"  % catsVersion % Test,
       "org.scalatest"    %% "scalatest"            % scalaTestVersion % Test,
