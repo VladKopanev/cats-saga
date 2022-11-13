@@ -5,7 +5,6 @@ name := "cats-saga"
 val mainScala = "2.13.8"
 val allScala  = Seq(mainScala, "2.12.16", "3.1.3")
 
-
 inThisBuild(
   List(
     organization := "com.vladkopanev",
@@ -84,7 +83,7 @@ lazy val core = project
     crossScalaVersions := allScala,
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "cats-effect"          % catsVersion,
-      "org.typelevel"    %% "cats-laws"            % "2.8.0" % Test,
+      "org.typelevel"    %% "cats-laws"            % "2.9.0" % Test,
       "org.typelevel"    %% "cats-effect-laws"     % catsVersion % Test,
       "org.typelevel"    %% "cats-effect-testkit"  % catsVersion % Test,
       "org.scalatest"    %% "scalatest"            % scalaTestVersion % Test,
