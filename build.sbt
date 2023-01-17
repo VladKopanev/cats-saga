@@ -5,7 +5,6 @@ name := "cats-saga"
 val mainScala = "2.13.8"
 val allScala  = Seq(mainScala, "2.12.16", "3.1.3")
 
-
 inThisBuild(
   List(
     organization := "com.vladkopanev",
@@ -69,7 +68,7 @@ lazy val root = project
   .in(file("."))
   .aggregate(core)
 
-val catsVersion                = "3.3.14"
+val catsVersion                = "3.4.5"
 val catsRetryVersion           = "3.1.0"
 val scalaTestVersion           = "3.2.12"
 val kindProjectorVersion       = "0.13.2"
